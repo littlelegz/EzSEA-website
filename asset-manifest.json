@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/reactvis/static/css/main.3bfcb178.css",
+    "main.js": "/reactvis/static/js/main.9383976a.js",
+    "index.html": "/reactvis/index.html",
+    "main.3bfcb178.css.map": "/reactvis/static/css/main.3bfcb178.css.map",
+    "main.9383976a.js.map": "/reactvis/static/js/main.9383976a.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.3bfcb178.css",
+    "static/js/main.9383976a.js"
+  ]
+}
