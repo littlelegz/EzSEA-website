@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/reactvis/static/css/main.1ef13ffc.css",
-    "main.js": "/reactvis/static/js/main.8de102b7.js",
+    "main.js": "/reactvis/static/js/main.8bd16516.js",
     "static/media/GCA_900167205.1_00854_ATOMS_section_With_ConSurf.pdb": "/reactvis/static/media/GCA_900167205.1_00854_ATOMS_section_With_ConSurf.1e627332cdf6a91976d9.pdb",
     "index.html": "/reactvis/index.html",
     "main.1ef13ffc.css.map": "/reactvis/static/css/main.1ef13ffc.css.map",
-    "main.8de102b7.js.map": "/reactvis/static/js/main.8de102b7.js.map"
+    "main.8bd16516.js.map": "/reactvis/static/js/main.8bd16516.js.map"
   },
   "entrypoints": [
     "static/css/main.1ef13ffc.css",
-    "static/js/main.8de102b7.js"
+    "static/js/main.8bd16516.js"
   ]
 }
