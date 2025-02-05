@@ -406,18 +406,14 @@ const Tol = () => {
         setLogoContent(prevLogoContent => {
             const updatedLogoContent = { ...prevLogoContent };
 
-            // Getting all leaves
-            // var descendants = selectAllDescendants(node, true, false);
-            var descendants = nodeData[node.data.name].leaves;
-            
-            if (!descendants) {
-                console.log("No descendants found for node:", node.data.name);
-                return updatedLogoContent;
-            }
-
+            var descendants = selectAllDescendants(node, true, false);
             var desc_fa = "";
             for (var desc of descendants) {
-                desc_fa += `>${desc}\n${leafData[desc]}\n`;
+                desc_fa += `>${desc.data.name}\n${leafData[desc.data.name]}\n`;
+            }
+            if (desc_fa === "") {
+                console.log("No descendants found for node:", node.data.name);
+                return updatedLogoContent;
             }
 
             node['compare-descendants'] = true;
