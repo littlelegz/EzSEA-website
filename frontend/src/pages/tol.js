@@ -991,9 +991,6 @@ const Tol = () => {
               <Tooltip title="Reset tree" placement="top">
                 <Button onClick={() => setRefresh(prev => !prev)}><RestoreIcon /></Button>
               </Tooltip>
-              <Tooltip title="Toggle Radial" placement="top">
-                <Button onClick={() => setIsRadial(prev => !prev)}>Layout</Button>
-              </Tooltip>
             </ButtonGroup>
             <div
               id="tree_container"
