@@ -4,11 +4,9 @@ import React, { useEffect, useRef, useState, useContext, useMemo, useCallback } 
 // Third Party Libraries
 import * as d3 from 'd3';
 import JSZip from 'jszip';
-import * as pt from 'phylotree';
-import { isLeafNode, selectAllDescendants } from 'phylotree/src/nodes';
-import { addCustomMenu } from 'phylotree/src/render/menus';
 import { ZstdInit } from '@oneidentity/zstd-js/decompress';
 import { RadialTree, RectTree, UnrootedTree } from 'tree3-react';
+import { selectAllLeaves, selectAllNodes } from 'tree3-react';
 
 // Material UI Components
 import Autocomplete from '@mui/material/Autocomplete';
