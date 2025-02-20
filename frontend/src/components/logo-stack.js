@@ -1,3 +1,14 @@
+/**
+ * logo-stack.js
+ * This file is the component that displays sequence logos
+ * Here is the structure of this component:
+ *  <LogoStack>
+ *     <DndLogo> - This layer ensures that logos are drag and droppable for easy reordering
+ *       <Logo> - This layer is responsible for rendering the logos, and contains most of the logic.
+ *     </DndLogo>
+ *     <DndLogo>... More logos 
+ * </LogoStack>   
+ */
 import React, { useState, useRef, useEffect, useImperativeHandle, useContext } from "react";
 import { EasyScroller } from 'easyscroller';
 import "./logojs.css";

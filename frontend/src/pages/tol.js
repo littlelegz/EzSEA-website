@@ -1,5 +1,8 @@
+/**
+ * tol.js
+ * This file renders the bilR example page.
+ */
 import React, { useEffect, useRef, useState, useContext } from 'react';
-import { RadialTree, RectTree, UnrootedTree } from 'tree3-react';
 
 import * as pt from 'phylotree';
 import { isLeafNode } from 'phylotree/src/nodes';

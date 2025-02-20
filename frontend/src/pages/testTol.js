@@ -1,3 +1,9 @@
+/**
+ * testTol.js
+ * This file renders the bilR example page using tree3-react. 
+ * It is a test page for the tree3-react library.
+ */
+
 // React Core
 import React, { useEffect, useRef, useState, useContext, useMemo, useCallback } from 'react';
 

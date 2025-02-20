@@ -193,7 +193,7 @@ const Results = () => {
             setErrorPopupVisible(true);
             console.error("Error fetching asr probability data:", data.asrError);
           } else {
-            ZstdInit().then(({ ZstdSimple, ZstdStream }) => {
+            ZstdInit().then(({ ZstdSimple, ZstdStream }) => { // Decompress the asr data
               const arrayBuffer = toArrayBuffer(data.asr.data);
               const intArray = new Uint8Array(arrayBuffer);
               const decompressedStreamData = ZstdStream.decompress(intArray);
@@ -233,7 +233,7 @@ const Results = () => {
         console.error("Error calculating gap offset array:", e);
       }
 
-      const tree = new pt.phylotree(newickData);
+      const tree = new pt.phylotree(newickData); // Init phylotree object
       setTreeObj(tree);
 
       function style_nodes(element, node_data) {
@@ -303,6 +303,8 @@ const Results = () => {
           }
         } else { // edits to the leaf nodes
           const node_label = element.select("text");
+
+          // Below are functions to render an option to open the uniref website for the leaf node
           function compareMenuCondition(node) {
             return "Open Uniref Website";
           }
@@ -396,7 +398,6 @@ const Results = () => {
 
       }
 
-
       tree.render({
         'container': "#tree_container",
         'is-radial': false,
@@ -409,7 +410,7 @@ const Results = () => {
         'top-bottom-spacing': 'fixed-step',
         'left-right-spacing': 'fixed-step',
         'brush': false,
-        'draw-size-bubbles': false, // Must be false so that nodes are clickable?
+        'draw-size-bubbles': false, // Must be false so that nodes are clickable
         'bubble-styler': d => { return 1.5 },
         'node-styler': style_nodes,
         'edge-styler': style_edges,
@@ -555,6 +556,11 @@ const Results = () => {
     setSelectedResidue(index + 1);
   };
 
+  /**
+   * Applies the entropy color to the structure viewer for the selected node's descendants
+   * nodeId: the name of the node
+   * clear: if true, clears the color
+   */
   const applyEntropyStructColor = (nodeId, clear = false) => {
     if (clear) {
       setColorArr(null);

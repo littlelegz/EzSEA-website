@@ -1,3 +1,7 @@
+/**
+ * submit.js
+ * This file renders the submit/landing page.
+ */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Navbar from "../components/navbar";
 import { Slider, Tooltip } from '@mui/material';
@@ -13,8 +17,8 @@ import HelpIcon from '@mui/icons-material/Help';
 import Switch from '@mui/material/Switch';
 
 const Submit = () => {
-    const [inputFile, setInputFile] = useState(null);
-    const [canSubmit, setCanSubmit] = useState(false);
+    const [inputFile, setInputFile] = useState(null); // Store the uploaded file
+    const [canSubmit, setCanSubmit] = useState(false); // Ensure that the user has uploaded a file before allowing submission
     const [submitStatus, setSubmitStatus] = useState(false); // Once button is clicked, submit status set to True, ensure no double submission
     const [textInput, setTextInput] = useState(false);
     const textInputRef = useRef(null);
@@ -24,8 +28,9 @@ const Submit = () => {
     const fileInput = useRef(null);
     let navigate = useNavigate();
 
-    const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+    const [snackbarOpen, setSnackbarOpen] = React.useState(false); // Notification of backend error
 
+    // Job options
     const [numSeq, setNumSeq] = useState(500);
     const [phylogeneticProgram, setPhylogeneticProgram] = useState("veryfasttree");
     const [ancestralProgram, setAncestralProgram] = useState("iqtree");

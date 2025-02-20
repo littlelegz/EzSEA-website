@@ -1,3 +1,7 @@
+/**
+ * status.js
+ * This file renders the status page.
+ */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import Navbar from "../components/navbar";
