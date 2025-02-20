@@ -50,8 +50,8 @@ const TestTol = () => {
   const [nodeData, setNodeData] = useState(null);
   const [structData, setStructData] = useState(null); // Structure data
   const [pocketData, setPocketData] = useState({}); // Pocket data
-
   const [ecData, setEcData] = useState(null); // EC codes 
+
   const [topNodes, setTopNodes] = useState({}); // Top 10 nodes for the tree
   const [asrData, setAsrData] = useState(null);
 
@@ -206,7 +206,6 @@ const TestTol = () => {
     if (ecData && ecData[node.data.name]) {
       const ec = ecData[node.data.name];
       if (ec.ec_number) {
-        // First create a group element to hold the label
         // Get parent of labelElement
         const parentElement = d3.select(node.labelElement.parentNode);
 
@@ -265,7 +264,7 @@ const TestTol = () => {
   }
 
   function onNodeClick(event, node) {
-    //console.log(node);
+    console.log(node);
   }
 
   // Custom menu items for nodes
@@ -419,7 +418,7 @@ const TestTol = () => {
           width={1500}
           linkStyler={style_edges}
           onNodeClick={onNodeClick}
-          homeNode={"bilR"} // TODO solve error with zoom, no property SVGLength
+        //homeNode={"bilR"} // disabled due to throwing a zoom.js error
         />;
       }
     }
@@ -475,6 +474,11 @@ const TestTol = () => {
 
       const missingSequences = [];
       var descendants = selectAllLeaves(node);
+      if (descendants.length === 0) {
+        console.warn("No descendants found for node:", node.data.name);
+        return;
+      }
+
       var desc_fa = "";
       for (var desc of descendants) {
         if (!leafData[desc.data.name]) {
@@ -505,8 +509,6 @@ const TestTol = () => {
   *   If color is null, removes the color
   */
   const setNodeColor = (node, color = null) => {
-    if (color) console.log("Setting node color for node:", d3.select(node.nodeElement));
-
     const nodeSelection = d3.select(node.nodeElement);
     const circles = nodeSelection.selectAll('circle');
 
@@ -582,7 +584,7 @@ const TestTol = () => {
     setIsRightCollapsed(false);
     setColorArr(null);
     setLogoContent({});
-    var desc = selectAllNodes(treeRef.current.getRoot());
+    var desc = d3.selectAll(".inner-node").data();
     // Map set node-compare to false over desc
     desc.forEach(node => {
       node['compare-node'] = false;
@@ -956,8 +958,10 @@ const TestTol = () => {
                     'aria-labelledby': 'basic-button',
                   }}
                 >
-                  <MenuItem onClick={() => treeRef.current && treeRef.current.setVariableLinks(prev => !prev)}>Variable Links</MenuItem>
-                  <MenuItem onClick={() => treeRef.current && treeRef.current.setTipAlign(prev => !prev)}>Align Tips</MenuItem>
+                  {(treeLayout !== "unrooted") && (<>
+                    <MenuItem onClick={() => treeRef.current && treeRef.current.setVariableLinks(prev => !prev)}>Variable Links</MenuItem>
+                    <MenuItem onClick={() => treeRef.current && treeRef.current.setTipAlign(prev => !prev)}>Align Tips</MenuItem>
+                  </>)}
                   <MenuItem onClick={() => treeRef.current && treeRef.current.setDisplayLeaves(prev => !prev)}>Toggle Labels</MenuItem>
                 </Menu>
               </Tooltip>
