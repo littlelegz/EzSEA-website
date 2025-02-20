@@ -1,3 +1,8 @@
+/**
+ * consolestatus.js
+ * This file is the component that displays the console logs for a job.
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import Navbar from '../components/navbar';
 import { useParams } from 'react-router-dom';

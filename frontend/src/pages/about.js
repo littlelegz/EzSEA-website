@@ -1,3 +1,7 @@
+/**
+ * about.js
+ * This file renders the about page.
+ */
 import React from "react";
 import '../components/about.css';
 import Navbar from "../components/navbar";

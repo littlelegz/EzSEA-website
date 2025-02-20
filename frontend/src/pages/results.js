@@ -1,27 +1,25 @@
+/**
+ * results.js
+ * This file renders the results visualization page
+ */
+
+// React and related hooks
 import React, { useEffect, useRef, useState, useContext } from 'react';
-import * as pt from 'phylotree';
-import { isLeafNode } from 'phylotree/src/nodes';
-import { addCustomMenu } from 'phylotree/src/render/menus';
-import { selectAllDescendants } from 'phylotree/src/nodes';
-import Navbar from "../components/navbar";
-import "../components/phylotree.css";
-import "../components/tol.css";
-import MolstarViewer from "../components/molstar";
-import LogoStack from '../components/logo-stack';
-import { fastaToDict, parseNodeData, calcEntropyFromMSA, mapEntropyToColors, jsonToFasta, calcGapOffsetArr, calcStructToLogoMap } from '../components/utils';
 import { useParams } from 'react-router-dom';
+
+// External libraries
+import * as pt from 'phylotree'; // Switch to tree3-react
+import { isLeafNode, selectAllDescendants } from 'phylotree/src/nodes';
+import { addCustomMenu } from 'phylotree/src/render/menus';
 import * as d3 from 'd3';
-import ErrorPopup from '../components/errorpopup';
 import JSZip from 'jszip';
+import { ZstdInit } from '@oneidentity/zstd-js/decompress';
+
+// Material UI components
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
-import FilterCenterFocusIcon from '@mui/icons-material/FilterCenterFocus';
-import LabelIcon from '@mui/icons-material/Label';
 import Tooltip from '@mui/material/Tooltip';
-import RestoreIcon from '@mui/icons-material/Restore';
 import { Slider } from '@mui/material';
-import { tolContext } from '../components/tolContext';
-import { ZstdInit, ZstdDec } from '@oneidentity/zstd-js/decompress';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
@@ -29,8 +27,27 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import Menu from '@mui/material/Menu';
-import DownloadDialog from '../components/downloadlogo.tsx';
 import Skeleton from '@mui/material/Skeleton';
+
+// Material UI icons
+import FilterCenterFocusIcon from '@mui/icons-material/FilterCenterFocus';
+import LabelIcon from '@mui/icons-material/Label';
+import RestoreIcon from '@mui/icons-material/Restore';
+
+// Internal components
+import Navbar from "../components/navbar";
+import MolstarViewer from "../components/molstar";
+import LogoStack from '../components/logo-stack';
+import ErrorPopup from '../components/errorpopup';
+import DownloadDialog from '../components/downloadlogo.tsx';
+import { tolContext } from '../components/tolContext';
+
+// Utility functions
+import { fastaToDict, parseNodeData, calcEntropyFromMSA, mapEntropyToColors, jsonToFasta, calcGapOffsetArr, calcStructToLogoMap } from '../components/utils';
+
+// CSS files
+import "../components/phylotree.css";
+import "../components/tol.css";
 
 const Results = () => {
   const { jobId } = useParams();
@@ -44,11 +61,11 @@ const Results = () => {
 
   const [inputData, setInputData] = useState(null); // Query sequence 
   const [inputHeader, setInputHeader] = useState(null); // Header of the query sequence
-  const [gapOffsetArr, setGapOffsetArr] = useState([]);
-  const [structLogoMapArr, setStructLogoMapArr] = useState([]);
+  const [gapOffsetArr, setGapOffsetArr] = useState([]); // Array of offsets for gaps in the query sequence
+  const [structLogoMapArr, setStructLogoMapArr] = useState([]); // Mapping between structure and logo residue locations
   const [ecData, setEcData] = useState(null); // EC codes 
   const [topNodes, setTopNodes] = useState({}); // Top 10 nodes for the tree
-  const [asrData, setAsrData] = useState(null);
+  const [asrData, setAsrData] = useState(null); // ASR probabilities
 
   // Array of colors for the structure viewer
   const [colorArr, setColorArr] = useState(null);
@@ -62,8 +79,6 @@ const Results = () => {
   const [hoveredResidue, setHoveredResidue] = useState(null); // Currently not in use
 
   // States for rendering control
-  const [treeLayout, setTreeLayout] = useState('radial');
-  const layouts = ['radial', 'rectangular', 'unrooted'];
   const [pipVisible, setPipVisible] = useState(false); // Show/hide the right side sequence logo, struct viewer
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
   const [isRightCollapsed, setIsRightCollapsed] = useState(false);
@@ -75,20 +90,11 @@ const Results = () => {
 
   // References for rendering
   const treeRef = useRef(null);
-  const treediv = useRef(null);
   const pvdiv = useRef(null);
   const logoStackRef = useRef(null);
   const scrollInputRef = useRef(null);
   const [importantResidues, setImportantResidues] = useState([]);
 
-  // Add state for tree key
-  const [treeKey, setTreeKey] = useState(0);
-
-  const cycleLayout = () => {
-    const currentIndex = layouts.indexOf(treeLayout);
-    const nextIndex = (currentIndex + 1) % layouts.length;
-    setTreeLayout(layouts[nextIndex]);
-  };
   // Storing tree reference itself
   const [treeObj, setTreeObj] = useState(null);
   const [isErrorPopupVisible, setErrorPopupVisible] = useState(false);
@@ -211,100 +217,6 @@ const Results = () => {
       console.error("Error fetching results:", error);
     };
   }, []);
-
-  const style_nodes = useMemo((node) => { // nodes are all internal
-    if (topNodes && node.data.name in topNodes) { // First condition to ensure nodeData is populated
-      element.select("circle").style("fill", "green");
-    }
-  }, [topNodes]);
-
-  const style_leaves = useMemo((node) => { // leaves are all terminal
-    if (node.data.name === "bilR") { // find input node, change to whatever node you want to highlight
-      d3.select(node.labelElement).style("fill", "red").style("font-size", () => {
-        const currentSize = d3.select(node.labelElement).style("font-size");
-        const sizeNum = parseFloat(currentSize);
-        return (sizeNum + 2) + "px";
-      });
-    }
-  }, [inputHeader]);
-
-  function style_edges(source, target) {
-    if (asrData && target.children) { // Targets only node to node links as leaf nodes have no children property
-      const element = d3.select(target.linkNode);
-      element.on('click', async (event, branch) => {
-        if (branch.selected) {
-          branch.selected = false;
-
-          event.target.classList.remove('link--highlight');
-          removeNodeFromLogo(source); // Remove the node from logoContent if already present
-          removeNodeFromLogo(target);
-        } else {
-          branch.selected = true;
-          event.target.classList.add('link--highlight');
-
-          pushNodeToLogo(source);
-          pushNodeToLogo(target);
-        }
-      });
-    }
-  }
-
-  function onNodeClick(event, node) {
-    console.log(node);
-  }
-
-  // Custom menu items for nodes
-  const nodeMenu = useMemo(() => [
-    { // Compare Descendants Option
-      label: function (node) {
-        return node['compare-descendants'] ? "Remove descendants" : "Compare descendants";
-      },
-      onClick: function (node) {
-        if (node['compare-descendants']) {
-          removeNodeFromLogo(node, true);
-          setNodeColor(node.data.name, null);
-        } else {
-          pushNodeToEntropyLogo(node);
-        }
-      },
-      toShow: function (node) {
-        if (node.children.length > 0) {
-          return true;
-        } else {
-          return false;
-        }
-      }
-    }, { // Compare ASR Option
-      label: function (node) {
-        return node['compare-node'] ? "Remove from compare" : "Compare ancestral state";
-      },
-      onClick: function (node) {
-        if (node['compare-node']) {
-          removeNodeFromLogo(node, false);
-          setNodeColor(node.data.name, null);
-        } else {
-          pushNodeToLogo(node);
-        }
-      },
-      toShow: function (node) {
-        if (node.children.length > 0) {
-          return true;
-        } else {
-          return false;
-        }
-      }
-    }
-  ], [asrData, leafData]);
-
-  // Deals with tree rendering
-  useEffect(() => {
-    setTreeKey(prev => prev + 1);
-    setSearchOptions( // Used for the search by name menu, fill with whatever info we have
-      (asrData && leafData) ? Object.keys(asrData).concat(Object.keys(leafData)) :
-        (leafData) ? Object.keys(leafData) :
-          (asrData) ? Object.keys(asrData) : []
-    )
-  }, [newickData, asrData, leafData]);
 
   // Deals with tree rendering
   useEffect(() => {

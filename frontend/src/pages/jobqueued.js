@@ -1,3 +1,8 @@
+/**
+ * jobqueued.js
+ * This file renders a confirmation page after a job has been submitted.
+ * It has been deprecated in favor of redirectly directly to the status page.
+ */
 import React from 'react';
 import Navbar from '../components/navbar';
 import { useLocation } from 'react-router-dom';

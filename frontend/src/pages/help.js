@@ -1,3 +1,7 @@
+/**
+ * help.js
+ * This file renders the help page.
+ */
 import React from "react";
 import Navbar from "../components/navbar";
 import "../components/help.css";

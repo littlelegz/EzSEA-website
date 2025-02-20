@@ -1,14 +1,11 @@
+/**
+ * playground.js
+ * This file renders the playground page used for developing new pages.
+ */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useParams } from 'react-router-dom';
 import Navbar from "../components/navbar";
 import "../components/playground.css";
-import Switch from '@mui/material/Switch';
-import { Slider, Tooltip } from '@mui/material';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import { Button } from '@mui/material';
-import { useNavigate } from "react-router-dom";
 import CircularProgress from '@mui/material/CircularProgress';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
