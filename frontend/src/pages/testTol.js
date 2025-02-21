@@ -249,25 +249,57 @@ const TestTol = () => {
   }, []);
 
   function style_edges(source, target) {
-    // if (asrData && target.children) { // Targets only node to node links as leaf nodes have no children property
-    //   const element = d3.select(target.linkNode);
-    //   element.on('click', async (event, branch) => {
-    //     if (branch.selected) {
-    //       branch.selected = false;
+    if (asrData && target.children) { // Targets only node to node links as leaf nodes have no children property
+      const element = d3.select(target.linkNode);
+      element.on('click', async (event, branch) => {
+        if (branch.selected) {
+          branch.selected = false;
 
-    //       event.target.classList.remove('link--highlight');
-    //       removeNodeFromLogo(source); // Remove the node from logoContent if already present
-    //       removeNodeFromLogo(target);
-    //     } else {
-    //       branch.selected = true;
-    //       event.target.classList.add('link--highlight');
+          event.target.classList.remove('link--highlight');
+          removeNodeFromLogo(source); // Remove the node from logoContent if already present
+          removeNodeFromLogo(target);
+        } else {
+          branch.selected = true;
+          event.target.classList.add('link--highlight');
 
-    //       pushNodeToLogo(source);
-    //       pushNodeToLogo(target);
-    //     }
-    //   });
-    // }
+          pushNodeToLogo(source);
+          pushNodeToLogo(target);
+        }
+      });
+    }
   }
+
+  function onNodeClick(event, node) {
+    console.log(node);
+  }
+
+  const linkMenu = [
+    {
+      label: function (source, target) {
+        if (source['compare-node'] || target['compare-node']) {
+          return "Remove comparisons";
+        } else {
+          return "Compare pair";
+        }
+      },
+      onClick: function (source, target) {
+        if (source['compare-node'] || target['compare-node']) {
+          removeNodeFromLogo(source); // Remove the node from logoContent if already present
+          removeNodeFromLogo(target);
+          source['compare-node'] = false;
+          target['compare-node'] = false;
+        } else {
+          pushNodeToLogo(source);
+          pushNodeToLogo(target);
+          source['compare-node'] = true;
+          target['compare-node'] = true;
+        }
+      },
+      toShow: function (source, target) {
+        return true;
+      }
+    }
+  ];
 
   function onNodeClick(event, node) {
     console.log(node);
@@ -420,9 +452,10 @@ const TestTol = () => {
           nodeStyler={style_nodes}
           customNodeMenuItems={nodeMenu}
           customLeafMenuItems={leafMenu}
+          customLinkMenuItems={linkMenu}
           leafStyler={style_leaves_unrooted}
           width={1500}
-          linkStyler={style_edges}
+          //linkStyler={style_edges}
           onNodeClick={onNodeClick}
         //homeNode={"bilR"} // disabled due to throwing a zoom.js error
         />;
