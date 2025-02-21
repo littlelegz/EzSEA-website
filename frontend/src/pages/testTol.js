@@ -249,24 +249,24 @@ const TestTol = () => {
   }, []);
 
   function style_edges(source, target) {
-    if (asrData && target.children) { // Targets only node to node links as leaf nodes have no children property
-      const element = d3.select(target.linkNode);
-      element.on('click', async (event, branch) => {
-        if (branch.selected) {
-          branch.selected = false;
+    // if (asrData && target.children) { // Targets only node to node links as leaf nodes have no children property
+    //   const element = d3.select(target.linkNode);
+    //   element.on('click', async (event, branch) => {
+    //     if (branch.selected) {
+    //       branch.selected = false;
 
-          event.target.classList.remove('link--highlight');
-          removeNodeFromLogo(source); // Remove the node from logoContent if already present
-          removeNodeFromLogo(target);
-        } else {
-          branch.selected = true;
-          event.target.classList.add('link--highlight');
+    //       event.target.classList.remove('link--highlight');
+    //       removeNodeFromLogo(source); // Remove the node from logoContent if already present
+    //       removeNodeFromLogo(target);
+    //     } else {
+    //       branch.selected = true;
+    //       event.target.classList.add('link--highlight');
 
-          pushNodeToLogo(source);
-          pushNodeToLogo(target);
-        }
-      });
-    }
+    //       pushNodeToLogo(source);
+    //       pushNodeToLogo(target);
+    //     }
+    //   });
+    // }
   }
 
   function onNodeClick(event, node) {
@@ -498,6 +498,8 @@ const TestTol = () => {
         console.warn("Missing sequences for nodes:", missingSequences.join(", "));
         return updatedLogoContent;
       }
+
+      console.log("descendants", desc_fa);
 
       node['compare-descendants'] = true;
 
