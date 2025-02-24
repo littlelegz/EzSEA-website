@@ -122,9 +122,9 @@ const Tol = () => {
     readFastaToDict(`${process.env.PUBLIC_URL}/example/seq_trimmed.afa`).then(data => { setLeafData(data) });
 
     // Fetch the structure data
-    // fetch(`${process.env.PUBLIC_URL}/example/seq.pdb`)
-    //     .then(response => response.text())
-    //     .then(data => setStructData(data));
+    fetch(`${process.env.PUBLIC_URL}/example/seq.pdb`)
+      .then(response => response.text())
+      .then(data => setStructData(data));
 
     // Fetch pocket data
     Promise.all([1, 2, 3, 4, 5].map(i =>
