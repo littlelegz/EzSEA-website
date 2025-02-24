@@ -750,11 +750,11 @@ const TestTol = () => {
     var zip = new JSZip();
 
     zip.file("asr.fa", jsonToFasta(faData))
-      .file("leaf.afa", jsonToFasta(leafData))
-      .file("tree.nwk", newickData)
+      .file("seq_trimmed.afa", jsonToFasta(leafData))
+      .file("asr.tree", newickData)
       .file("nodes.json", JSON.stringify(nodeData, null, 2))
       .file("seq.pdb", structData)
-      .file("asr.zst", compressedAsr);
+      .file("seq.state.zst", compressedAsr);
 
     zip.generateAsync({ type: "blob" }).then(function (blob) {
       element.href = URL.createObjectURL(blob);

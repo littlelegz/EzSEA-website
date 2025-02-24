@@ -66,6 +66,7 @@ const Results = () => {
   const [ecData, setEcData] = useState(null); // EC codes 
   const [topNodes, setTopNodes] = useState({}); // Top 10 nodes for the tree
   const [asrData, setAsrData] = useState(null); // ASR probabilities
+  const [compressedAsr, setCompressedAsr] = useState(null); // Compressed ASR probabilities
 
   // Array of colors for the structure viewer
   const [colorArr, setColorArr] = useState(null);
@@ -195,6 +196,7 @@ const Results = () => {
           } else {
             ZstdInit().then(({ ZstdSimple, ZstdStream }) => { // Decompress the asr data
               const arrayBuffer = toArrayBuffer(data.asr.data);
+              setCompressedAsr(arrayBuffer);
               const intArray = new Uint8Array(arrayBuffer);
               const decompressedStreamData = ZstdStream.decompress(intArray);
               const asrDict = JSON.parse(uint8ArrayToString(decompressedStreamData));
@@ -878,11 +880,12 @@ const Results = () => {
     var zip = new JSZip();
 
     zip.file("asr.fa", jsonToFasta(faData))
-      .file("leaf.afa", jsonToFasta(leafData))
-      .file("tree.nwk", newickData)
+      .file("seq_trimmed.afa", jsonToFasta(leafData))
+      .file("asr.tree", newickData)
       .file("nodes.json", JSON.stringify(nodeData, null, 2))
-      .file("seq.pdb", structData);
-
+      .file("seq.pdb", structData)
+      .file("seq.state.zst", compressedAsr);
+      
     zip.generateAsync({ type: "blob" }).then(function (blob) {
       element.href = URL.createObjectURL(blob);
       element.download = `${jobId}_all.zip`;

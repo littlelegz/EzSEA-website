@@ -49,7 +49,8 @@ const Tol = () => {
 
   const [ecData, setEcData] = useState(null); // EC codes 
   const [topNodes, setTopNodes] = useState({}); // Top 10 nodes for the tree
-  const [asrData, setAsrData] = useState(null);
+  const [asrData, setAsrData] = useState(null); 
+  const [compressedAsr, setCompressedAsr] = useState(null);
 
   // State to store the logo content (formatted for logoJS) and color file
   const [colorArr, setColorArr] = useState(null);
@@ -122,7 +123,7 @@ const Tol = () => {
     readFastaToDict(`${process.env.PUBLIC_URL}/example/seq_trimmed.afa`).then(data => { setLeafData(data) });
 
     // Fetch the structure data
-    fetch(`${process.env.PUBLIC_URL}/example/seq.pdb`)
+    fetch(`${process.env.PUBLIC_URL}/example/bilR.pdb`)
       .then(response => response.text())
       .then(data => setStructData(data));
 
@@ -158,13 +159,13 @@ const Tol = () => {
       // Load the compressed data
       fetch(`${process.env.PUBLIC_URL}/example/seq.state.zst`).then(response => {
         response.arrayBuffer().then(compressedData => {
+          setCompressedAsr(compressedData);
           // Decompress the compressed simple data
           const decompressedStreamData = ZstdStream.decompress(new Uint8Array(compressedData));
           const asrDict = JSON.parse(uint8ArrayToString(decompressedStreamData))
           setAsrData(asrDict);
         });
       });
-
     });
   }, []);
 
@@ -740,10 +741,11 @@ const Tol = () => {
     var zip = new JSZip();
 
     zip.file("asr.fa", jsonToFasta(faData))
-      .file("leaf.afa", jsonToFasta(leafData))
-      .file("tree.nwk", newickData)
+      .file("seq_trimmed.afa", jsonToFasta(leafData))
+      .file("asr.tree", newickData)
       .file("nodes.json", JSON.stringify(nodeData, null, 2))
-      .file("seq.pdb", structData);
+      .file("seq.pdb", structData)
+      .file("seq.state.zst", compressedAsr);
 
     zip.generateAsync({ type: "blob" }).then(function (blob) {
       element.href = URL.createObjectURL(blob);
