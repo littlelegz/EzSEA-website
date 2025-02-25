@@ -1,3 +1,7 @@
+/**
+ * logoContext.js
+ * This file contains the context provider for the sequence logos
+ */
 import React, { createContext, useState } from 'react';
 
 export const logoContext = createContext();

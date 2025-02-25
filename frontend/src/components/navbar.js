@@ -1,9 +1,12 @@
+/**
+ * navbar.js
+ * This file contains the code for the navbar
+ */
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "./navbar.css"; // Make sure to create this file for styling
 
 const Navbar = (options) => {
-  const [isMobile, setIsMobile] = useState(false);
 
   return (
     <div className="navbar">
@@ -22,8 +25,7 @@ const Navbar = (options) => {
       )
       }
       <ul
-        className={isMobile ? "nav-links-mobile" : "nav-links"}
-        onClick={() => setIsMobile(false)}
+        className={"nav-links"}
       >
         <Link to="/about" className="about">
           <li>About</li>

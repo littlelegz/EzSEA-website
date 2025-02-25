@@ -1,3 +1,8 @@
+/**
+ * loading.js
+ * This file contains the code for a loading spinner
+ * TODO - animate logo
+ */
 import "./loading.css";
 
 const Loading = () => {

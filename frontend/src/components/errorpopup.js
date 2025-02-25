@@ -1,3 +1,7 @@
+/**
+ * errorpopup.js
+ * This file contains the code for a blocking error popup
+ */
 import React from 'react';
 import './errorpopup.css'; // CSS for styling the popup and background
 

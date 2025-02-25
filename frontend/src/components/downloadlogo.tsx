@@ -1,10 +1,13 @@
+/**
+ * downloadlogo.tsx
+ * This file contains the code for the download logo dialog component
+ * used to download the a selected range from the logo stack as an SVG file.
+ */
 import React, { useContext } from 'react';
 import DialogTitle from '@mui/material/DialogTitle';
 import Dialog from '@mui/material/Dialog';
 import Slider from '@mui/material/Slider';
 import Button from '@mui/material/Button';
-
-const emails = ['username@gmail.com', 'user02@gmail.com'];
 
 export interface SimpleDialogProps {
   open: boolean;
