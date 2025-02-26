@@ -273,10 +273,6 @@ const TestTol = () => {
     }
   }
 
-  function onNodeClick(event, node) {
-    console.log(node);
-  }
-
   const linkMenu = [
     {
       label: function (source, target) {
@@ -433,6 +429,7 @@ const TestTol = () => {
           linkStyler={style_edges}
           onNodeClick={onNodeClick}
           homeNode={"bilR"}
+          state={treeRef.current && treeRef.current.getState()}
         />;
       } else if (treeLayout === 'rectangular') {
         return <RectTree
@@ -447,6 +444,7 @@ const TestTol = () => {
           linkStyler={style_edges}
           onNodeClick={onNodeClick}
           homeNode={"bilR"}
+          state={treeRef.current && treeRef.current.getState()}
         />;
       } else {
         return <UnrootedTree
@@ -461,7 +459,8 @@ const TestTol = () => {
           width={1500}
           //linkStyler={style_edges}
           onNodeClick={onNodeClick}
-        //homeNode={"bilR"} // disabled due to throwing a zoom.js error
+          //homeNode={"bilR"} // disabled due to throwing a zoom.js error
+          state={treeRef.current && treeRef.current.getState()}
         />;
       }
     }
