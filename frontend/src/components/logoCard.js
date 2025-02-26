@@ -40,7 +40,7 @@ export const LogoCard = ({ id, index, header, moveCard, ppm = null, fasta = null
 
   const getHighlights = useMemo(() => {
     if (compareDiff) {
-      return compareDiff[nodeId].differing_residues;
+      return compareDiff[nodeId]?.differing_residues ?? [];
     } else if (nodeId in importantResiduesList) {
       return importantResiduesList[nodeId].differing_residues;
     }
