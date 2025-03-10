@@ -282,7 +282,16 @@ const Submit = () => {
     return content.replace(/[^A-Za-z0-9_\.\n\r>]/g, '');
   };
 
-  const submitJob = () => {
+  const readFileContent = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = (e) => reject(e);
+      reader.readAsText(file);
+    });
+  };
+
+  const submitJob = async () => {
     setSubmitStatus(true); // Prevent double submission
     const id = Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
     const formData = new FormData();
@@ -291,14 +300,10 @@ const Submit = () => {
     let inputFileName = inputFile ? inputFile.name : '';
 
     if (inputFile) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const textContent = cleanFileContent(e.target.result);
-        const blob = new Blob([textContent], { type: 'text/plain' });
-        inputFileToUpload = new File([blob], inputFileName, { type: 'text/plain' });
-        console.log(textContent);
-      };
-      reader.readAsText(inputFile);
+      const content = await readFileContent(inputFile);
+      const textContent = cleanFileContent(content);
+      const blob = new Blob([textContent], { type: 'text/plain' });
+      inputFileToUpload = new File([blob], inputFileName, { type: 'text/plain' });
     } else if (textInput) {
       const textContent = cleanFileContent(textInputRef.current.value);
       const fileExt = textContent.startsWith('>') ? 'fasta' : 'pdb';
