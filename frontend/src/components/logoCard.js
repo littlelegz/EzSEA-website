@@ -178,7 +178,7 @@ export const LogoCard = ({ id, index, header, moveCard, ppm = null, fasta = null
   return (
     <div ref={drop} className="dnd-container" style={{ display: "flex", padding: "0.5rem 0rem" }}>
       <div ref={dragRef}
-        style={{ ...dragHandleStyle, opacity, backgroundColor: "whitesmoke" }} data-handler-id={handlerId}>
+        style={{ ...dragHandleStyle, backgroundColor: isDragging ? '#639fc7' : 'whitesmoke' }} data-handler-id={handlerId}>
         <DragIndicatorIcon />
       </div>
       <div className="logo-scrollable-box" style={{ width: "95%" }}>

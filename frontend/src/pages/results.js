@@ -180,6 +180,8 @@ const Results = () => {
             console.error("Error fetching input sequence data:", data.inputError);
           } else {
             setInputData(data.input);
+            const header = data.input.split("\n")[0].substring(1).trim(); // Extracting the header from the input sequence
+            setInputHeader(header);
           }
 
           if (data.ecError) {
