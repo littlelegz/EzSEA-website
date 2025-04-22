@@ -275,7 +275,7 @@ const Results = () => {
 
         const ec_label = labelGroup
           .append("text")
-          .text(ec.ec_number ? `EC ${ec.ec_number}` : "not found")
+          .text(`EC ${ec.ec_number}`)
           .attr("transform", originalTransform) // Apply same transform
           .style("font-size", fontSize)
           .attr("dy", ".31em")
@@ -290,14 +290,14 @@ const Results = () => {
 
   const style_leaves_unrooted = useMemo(() => (node) => {
     if (!node) return;
-    if (node.data.name === "bilR") {
+    if (node.data.name === inputHeader) {
       d3.select(node.labelElement).style("fill", "red").style("font-size", () => {
         const currentSize = d3.select(node.labelElement).style("font-size");
         const sizeNum = parseFloat(currentSize);
         return (sizeNum + 2) + "px";
       });
     }
-  }, []);
+  }, [inputHeader]);
 
   function style_edges(source, target) {
     if (asrData && target.children) { // Targets only node to node links as leaf nodes have no children property

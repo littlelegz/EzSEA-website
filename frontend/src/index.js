@@ -25,7 +25,7 @@ const DualPathRoutes = () => (
                 <Route exact path="/reactvis" element={<Submit />} />
                 <Route path="/results/:jobId" element={<ResultsApp />} />
                 <Route path="/status/:jobId" element={<Status />} />
-                <Route path="/tol" element={<TolApp />} />
+                <Route path="/tol" element={<TestApp />} />
                 <Route path="/test" element={<TestApp />} />
                 <Route exact path="/playground" element={<Playground />} />
                 <Route exact path="/about" element={<About />} />
@@ -42,7 +42,7 @@ const DualPathRoutes = () => (
                 <Route exact path="/reactvis" element={<Submit />} />
                 <Route path="/results/:jobId" element={<ResultsApp />} />
                 <Route path="/status/:jobId" element={<Status />} />
-                <Route path="/tol" element={<TolApp />} />
+                <Route path="/tol" element={<TestApp />} />
                 <Route exact path="/about" element={<About />} />
                 <Route exact path="/help" element={<Help />} />
                 <Route path="*" element={<NotFoundPage />} />
