@@ -473,7 +473,7 @@ const Results = () => {
           width={1500}
           linkStyler={style_edges}
           onNodeClick={onNodeClick}
-          homeNode={"bilR"}
+          homeNode={inputHeader || ''}
           state={treeRef.current && treeRef.current.getState()}
         />;
       } else if (treeLayout === 'rectangular') {
@@ -488,7 +488,7 @@ const Results = () => {
           width={1500}
           linkStyler={style_edges}
           onNodeClick={onNodeClick}
-          homeNode={"bilR"}
+          homeNode={inputHeader || ''}
           state={treeRef.current && treeRef.current.getState()}
         />;
       } else {
@@ -504,7 +504,7 @@ const Results = () => {
           width={1500}
           //linkStyler={style_edges}
           onNodeClick={onNodeClick}
-          //homeNode={"bilR"} // disabled due to throwing a zoom.js error
+          // homeNode={inputHeader || ''} // disabled due to throwing a zoom.js error
           state={treeRef.current && treeRef.current.getState()}
         />;
       }
@@ -1097,7 +1097,9 @@ const Results = () => {
             <ButtonGroup variant="contained" aria-label="Basic button group">
               <Tooltip title="Recenter on input" placement="top">
                 <Button onClick={() => {
-                  treeRef.current && treeRef.current.findAndZoom("bilR", treediv);
+                  if (inputHeader) {
+                    treeRef.current && treeRef.current.findAndZoom(inputHeader, treediv);
+                  }
                 }}><FilterCenterFocusIcon /></Button>
               </Tooltip>
               <Tooltip title="Labels" placement="top">

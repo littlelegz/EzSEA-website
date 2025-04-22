@@ -23,6 +23,7 @@ const Submit = () => {
   const [textInput, setTextInput] = useState(false);
   const textInputRef = useRef(null);
   const [warnFasta, setWarnFasta] = useState(false);
+  const [warnFastaHeader, setWarnFastaHeader] = useState(false);
 
   const emailInput = useRef(null);
   const fileInput = useRef(null);
@@ -87,6 +88,17 @@ const Submit = () => {
     const lines = textContent.split('\n');
 
     if (textContent.startsWith('>')) { // Input is FASTA
+      // Check header for special characters
+      const header = lines[0].substring(1); // Remove '>' character
+      const hasSpecialChars = /[^A-Za-z0-9_\.]/g.test(header);
+
+      if (hasSpecialChars) {
+        setWarnFastaHeader(true);
+      } else {
+        setWarnFastaHeader(false);
+      }
+
+      // Existing sequence length validation
       if (lines.length > 1 && lines[1].length > 20 && lines[1].length < 1001) {
         setCanSubmit(true);
         setWarnFasta(false);
@@ -95,12 +107,12 @@ const Submit = () => {
         setCanSubmit(false);
       }
     } else { // Input is PDB
-      if (textContent.trim().length > 0) { // Input is PDB
+      setWarnFastaHeader(false);
+      setWarnFasta(false);
+      if (textContent.trim().length > 0) {
         setCanSubmit(true);
-        setWarnFasta(false);
-      } else { // Input is empty
+      } else {
         setCanSubmit(false);
-        setWarnFasta(false);
       }
     }
   }
@@ -278,6 +290,11 @@ const Submit = () => {
     }
   }
 
+  const isFastaFile = (filename) => {
+    const fastaExtensions = ['.fa', '.fasta', '.fna', '.mfa', '.fas', '.faa', '.txt'];
+    return fastaExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+  };
+
   const cleanFileContent = (content) => {
     return content.replace(/[^A-Za-z0-9_\.\n\r>]/g, '');
   };
@@ -292,7 +309,7 @@ const Submit = () => {
   };
 
   const submitJob = async () => {
-    setSubmitStatus(true); // Prevent double submission
+    setSubmitStatus(true);
     const id = Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
     const formData = new FormData();
 
@@ -301,11 +318,13 @@ const Submit = () => {
 
     if (inputFile) {
       const content = await readFileContent(inputFile);
-      const textContent = cleanFileContent(content);
+      const textContent = isFastaFile(inputFileName) ? cleanFileContent(content) : content;
       const blob = new Blob([textContent], { type: 'text/plain' });
       inputFileToUpload = new File([blob], inputFileName, { type: 'text/plain' });
     } else if (textInput) {
-      const textContent = cleanFileContent(textInputRef.current.value);
+      // For text input, only clean if it starts with '>' (FASTA format)
+      const rawContent = textInputRef.current.value;
+      const textContent = rawContent.startsWith('>') ? cleanFileContent(rawContent) : rawContent;
       const fileExt = textContent.startsWith('>') ? 'fasta' : 'pdb';
       inputFileName = `input.${fileExt}`;
       const blob = new Blob([textContent], { type: 'text/plain' });
@@ -444,10 +463,15 @@ const Submit = () => {
               {textInput ? (
                 <>
                   <p>Please enter a FASTA or PDB sequence. </p>
-                  <Tooltip title="Please enter valid FASTA format" placement="bottom" arrow
-                    open={warnFasta}
-                    onOpen={() => setWarnFasta(true)}
-                    onClose={() => setWarnFasta(false)}
+                  <Tooltip
+                    title={warnFastaHeader ?
+                      "FASTA header contains special characters. Only letters, numbers, dots (.) and underscores (_) are allowed. These will be removed automatically." :
+                      "Please enter valid FASTA format"}
+                    placement="bottom"
+                    arrow
+                    open={warnFasta || warnFastaHeader}
+                    onOpen={() => { }}
+                    onClose={() => { }}
                     disableHoverListener={true}
                     disableFocusListener={true}
                   >
@@ -528,9 +552,6 @@ const Submit = () => {
           </Button>
         </div>
         <br></br>
-        <div className="submit-header">
-          <h2>Webserver Status: Online</h2>
-        </div>
         <div>
           <br></br>
           <hr></hr>
