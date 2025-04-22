@@ -64,7 +64,6 @@ const Tol = () => {
   const [hoveredResidue, setHoveredResidue] = useState(null); // Currently not in use
 
   // States for rendering control
-  const [isRadial, setIsRadial] = useState(false);
   const [pipVisible, setPipVisible] = useState(false);
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
   const [isRightCollapsed, setIsRightCollapsed] = useState(false);

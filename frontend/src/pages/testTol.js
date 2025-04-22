@@ -92,7 +92,6 @@ const TestTol = () => {
   const [importantResidues, setImportantResidues] = useState([]);
 
   // Storing tree reference itself
-  const [treeObj, setTreeObj] = useState(null);
   const [isErrorPopupVisible, setErrorPopupVisible] = useState(false);
 
   // Add state for tree key

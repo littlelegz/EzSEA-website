@@ -4,7 +4,7 @@
  */
 
 // React and related hooks
-import React, { useEffect, useRef, useState, useContext } from 'react';
+import React, { useEffect, useRef, useState, useContext, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 
 // External libraries
@@ -16,18 +16,18 @@ import JSZip from 'jszip';
 import { ZstdInit } from '@oneidentity/zstd-js/decompress';
 
 // Material UI components
+import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 import ButtonGroup from '@mui/material/ButtonGroup';
-import Tooltip from '@mui/material/Tooltip';
-import { Slider } from '@mui/material';
-import Autocomplete from '@mui/material/Autocomplete';
-import TextField from '@mui/material/TextField';
-import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
-import Select from '@mui/material/Select';
+import InputLabel from '@mui/material/InputLabel';
 import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import Skeleton from '@mui/material/Skeleton';
+import { Slider } from '@mui/material';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 
 // Material UI icons
 import FilterCenterFocusIcon from '@mui/icons-material/FilterCenterFocus';
@@ -35,15 +35,17 @@ import LabelIcon from '@mui/icons-material/Label';
 import RestoreIcon from '@mui/icons-material/Restore';
 
 // Internal components
-import Navbar from "../components/navbar";
-import MolstarViewer from "../components/molstar";
-import LogoStack from '../components/logo-stack';
-import ErrorPopup from '../components/errorpopup';
 import DownloadDialog from '../components/downloadlogo.tsx';
-import { tolContext } from '../components/tolContext';
+import ErrorPopup from '../components/errorpopup.js';
+import LogoStack from '../components/logo-stack.js';
+import MolstarViewer from "../components/molstar.js";
+import Navbar from "../components/navbar.js";
+import { tolContext } from '../components/tolContext.js';
+import { readFastaToDict, parseNodeData, calcEntropyFromMSA, mapEntropyToColors, jsonToFasta } from '../components/utils.js';
 
-// Utility functions
-import { fastaToDict, parseNodeData, calcEntropyFromMSA, mapEntropyToColors, jsonToFasta, calcGapOffsetArr, calcStructToLogoMap } from '../components/utils';
+// Tree3
+import { selectAllLeaves, selectAllNodes } from 'tree3-react';
+import { RadialTree, RectTree, UnrootedTree } from 'tree3-react';
 
 // CSS files
 import "../components/phylotree.css";
@@ -55,15 +57,13 @@ const Results = () => {
   const [faData, setFaData] = useState(null); // Fasta data for the internal nodes (ancestral)
   const [leafData, setLeafData] = useState(null); // Fasta data for the leaf nodes
   const [newickData, setNewickData] = useState(null); // Tree
-  const [nodeData, setnodeData] = useState(null); // asr stats, important residues
+  const [nodeData, setNodeData] = useState(null); // asr stats, important residues
   const [structData, setStructData] = useState(null); // Structure data
   const [pocketData, setPocketData] = useState({}); // Pocket data
-
   const [inputData, setInputData] = useState(null); // Query sequence 
   const [inputHeader, setInputHeader] = useState(null); // Header of the query sequence
-  const [gapOffsetArr, setGapOffsetArr] = useState([]); // Array of offsets for gaps in the query sequence
-  const [structLogoMapArr, setStructLogoMapArr] = useState([]); // Mapping between structure and logo residue locations
   const [ecData, setEcData] = useState(null); // EC codes 
+
   const [topNodes, setTopNodes] = useState({}); // Top 10 nodes for the tree
   const [asrData, setAsrData] = useState(null); // ASR probabilities
   const [compressedAsr, setCompressedAsr] = useState(null); // Compressed ASR probabilities
@@ -85,22 +85,41 @@ const Results = () => {
   const [isRightCollapsed, setIsRightCollapsed] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [notification, setNotification] = useState('');
-  const [refresh, setRefresh] = useState(false);
   const [labelMenuAnchor, setLabelMenuAnchor] = useState(null);
   const labelMenuOpen = Boolean(labelMenuAnchor);
+  const [searchOptions, setSearchOptions] = useState([]);
 
   // References for rendering
   const treeRef = useRef(null);
+  const treediv = useRef(null);
   const pvdiv = useRef(null);
   const logoStackRef = useRef(null);
   const scrollInputRef = useRef(null);
   const [importantResidues, setImportantResidues] = useState([]);
 
   // Storing tree reference itself
-  const [treeObj, setTreeObj] = useState(null);
   const [isErrorPopupVisible, setErrorPopupVisible] = useState(false);
 
-  //
+  // Add state for tree key
+  const [treeKey, setTreeKey] = useState(0);
+
+  // Tree layouts
+  const [treeLayout, setTreeLayout] = useState('radial');
+  const layouts = ['radial', 'rectangular', 'unrooted'];
+
+  const cycleLayout = () => {
+    const currentIndex = layouts.indexOf(treeLayout);
+    const nextIndex = (currentIndex + 1) % layouts.length;
+    setTreeLayout(layouts[nextIndex]);
+  };
+
+  const showErrorPopup = () => {
+    setErrorPopupVisible(true);
+  };
+
+  const closeErrorPopup = () => {
+    setErrorPopupVisible(false);
+  };
 
   // Fetch the tree data and node data on component mount, store data into states
   useEffect(() => {
@@ -145,8 +164,8 @@ const Results = () => {
             console.error("Error fetching nodes data:", data.nodesError);
           } else {
             const json = JSON.parse(data.nodes);
-            parseNodeData(json).then((parsedData) => setnodeData(parsedData));
             parseNodeData(json.slice(0, 10)).then((parsedData) => setTopNodes(parsedData));
+            parseNodeData(json).then((parsedData) => setNodeData(parsedData));
           }
 
           if (data.structError) {
@@ -220,224 +239,288 @@ const Results = () => {
     };
   }, []);
 
-  // Deals with tree rendering
-  useEffect(() => {
-    if (treeRef.current && newickData && nodeData && asrData) {
-      treeRef.current.innerHTML = '';
+  // Tree params
+  function style_nodes(node) { // nodes are all internal
+    if (topNodes && node.data.name in topNodes) { // First condition to ensure nodeData is populated
+      const element = d3.select(node.nodeElement);
+      element.select("circle").style("fill", "green");
+      element.select("circle").attr("r", 5);
+    }
+  }
 
-      const header = inputData.split("\n")[0].substring(1).trim(); // Extracting the header from the input sequence
-      setInputHeader(header);
+  const style_leaves = useMemo(() => (node) => {
+    if (!node) return;
+    if (node.data.name === "bilR") {
+      d3.select(node.labelElement).style("fill", "red").style("font-size", () => {
+        const currentSize = d3.select(node.labelElement).style("font-size");
+        const sizeNum = parseFloat(currentSize);
+        return (sizeNum + 2) + "px";
+      });
+    }
 
-      try {
-        setGapOffsetArr(calcGapOffsetArr(leafData[header])); // Setting precalculated offsets for coloring important residues
-        setStructLogoMapArr(calcStructToLogoMap(leafData[header]));
-      } catch (e) {
-        console.error("Error calculating gap offset array:", e);
+    if (ecData && ecData[node.data.name]) {
+      const ec = ecData[node.data.name];
+      if (ec.ec_number) {
+        // Get parent of labelElement
+        const parentElement = d3.select(node.labelElement.parentNode);
+
+        // Create sibling group next to labelElement
+        const labelGroup = parentElement
+          .append("g")
+          .attr("class", "label-group")
+        const originalTransform = d3.select(node.labelElement).attr("transform");
+        const fontSize = d3.select(node.labelElement).style("font-size");
+
+        const ec_label = labelGroup
+          .append("text")
+          .text(ec.ec_number ? `EC ${ec.ec_number}` : "not found")
+          .attr("transform", originalTransform) // Apply same transform
+          .style("font-size", fontSize)
+          .attr("dy", ".31em")
+          .attr("x", () => {
+            const hasRotate180 = originalTransform?.endsWith("rotate(180)");
+            return hasRotate180 ? "-20em" : "20em";
+          })
+          .attr("class", "ec-label");
       }
+    }
+  }, [ecData]);
 
-      const tree = new pt.phylotree(newickData); // Init phylotree object
-      setTreeObj(tree);
+  const style_leaves_unrooted = useMemo(() => (node) => {
+    if (!node) return;
+    if (node.data.name === "bilR") {
+      d3.select(node.labelElement).style("fill", "red").style("font-size", () => {
+        const currentSize = d3.select(node.labelElement).style("font-size");
+        const sizeNum = parseFloat(currentSize);
+        return (sizeNum + 2) + "px";
+      });
+    }
+  }, []);
 
-      function style_nodes(element, node_data) {
-        var node_label = element.select("text");
+  function style_edges(source, target) {
+    if (asrData && target.children) { // Targets only node to node links as leaf nodes have no children property
+      const element = d3.select(target.linkNode);
+      element.on('click', async (event, branch) => {
+        if (branch.selected) {
+          branch.selected = false;
 
-        if (!isLeafNode(node_data)) { // edits to the internal nodes
-          node_label.text("\u00A0" + node_label.text() + "\u00A0")
-            .style("font-weight", "bold");
+          event.target.classList.remove('link--highlight');
+          removeNodeFromLogo(source); // Remove the node from logoContent if already present
+          removeNodeFromLogo(target);
+        } else {
+          branch.selected = true;
+          event.target.classList.add('link--highlight');
 
-          if (topNodes && node_data.data.name in topNodes) { // First condition to ensure topNodes is populated
-            element.select("circle").style("fill", "green").attr("r", 5);
-          }
+          pushNodeToLogo(source);
+          pushNodeToLogo(target);
+        }
+      });
+    }
+  }
 
-          // Unaligning the internal nodes
-          const currentTransform = node_label.attr("transform");
-          const translateRegex = /translate \(([^)]+)\)/;
-          let newTransform = currentTransform.replace(translateRegex, `translate(0, 0)`);
-          node_label.attr("transform", newTransform);
-          // Deleting the line tracer
-          element.select("line").remove();
+  const linkMenu = [
+    {
+      label: function (source, target) {
+        if (source['compare-node'] || target['compare-node']) {
+          return "Remove comparisons";
+        } else {
+          return "Compare pair";
+        }
+      },
+      onClick: function (source, target) {
+        if (source['compare-node'] || target['compare-node']) {
+          removeNodeFromLogo(source); // Remove the node from logoContent if already present
+          removeNodeFromLogo(target);
+          source['compare-node'] = false;
+          target['compare-node'] = false;
+        } else {
+          pushNodeToLogo(source);
+          pushNodeToLogo(target);
+          source['compare-node'] = true;
+          target['compare-node'] = true;
+        }
+      },
+      toShow: function (source, target) {
+        return true;
+      }
+    }
+  ];
 
-          // Adding custom menu options (compare ancestral state, compare descendants)
-          function compareMenuCondition(node) {
-            if (node['compare-node']) {
-              return "Remove from compare";
-            }
-            return "Compare ancestral state";
-          }
+  function onNodeClick(event, node) {
+    console.log(node);
+  }
 
-          function compare(node, el) {
-            if (node['compare-node']) {
-              setNodeColor(node.data.name, null);
-              removeNodeFromLogo(node, false);
-            } else {
-              pushNodeToLogo(node);
-            }
-          }
-
-          function compareDescMenuCondition(node) {
-            if (node['compare-descendants']) {
-              return "Remove descendants";
-            } else {
-              return "Compare descendants";
-            }
-          }
-
-          function compareDescendants(node, el) {
-            // change color of circle to yellow
-            if (node['compare-descendants']) {
-              removeNodeFromLogo(node, true);
-              setNodeColor(node.data.name, null);
-            } else {
-              pushNodeToEntropyLogo(node, true);
-            }
-          }
-
-          // Toggling selection options causes this code to run in duplicate. Patching it here
-          if (!node_data['menu_items'] || node_data['menu_items'].length != 2) {
-            // Adding my custom menu
-            addCustomMenu(node_data, compareMenuCondition, function () {
-              compare(node_data, element);
-            }, () => true);
-
-            addCustomMenu(node_data, compareDescMenuCondition, function () {
-              compareDescendants(node_data, element);
-            }, () => true);
-          }
-        } else { // edits to the leaf nodes
-          const node_label = element.select("text");
-
-          // Below are functions to render an option to open the uniref website for the leaf node
-          function compareMenuCondition(node) {
-            return "Open Uniref Website";
-          }
-
-          function compare(node, el) {
-            const url = `https://rest.uniprot.org/uniref/search?query=${node.data.name}&fields=id`;
-
-            fetch(url)
-              .then(response => {
-                if (!response.ok) {
-                  alert('UniProt database error.');
-                } else {
-                  return response.json();
-                }
-              })
-              .then(data => {
-                if (data && data.results) {
-                  const uniref100 = data.results.find(result => result.id.startsWith('UniRef100'));
-                  if (uniref100) {
-                    const unirefUrl = `https://www.uniprot.org/uniref/${uniref100.id}`;
-                    window.open(unirefUrl, '_blank');
-                  } else {
-                    alert('No UniRef100 ID found.');
-                  }
-                }
-              })
-              .catch(error => {
-                console.error('Error checking URL:', error);
-                alert('There was an error checking the URL. Please check your network connection and try again.');
-              });
-          }
-
-          addCustomMenu(node_data, compareMenuCondition, function () {
-            compare(node_data, element);
-          }, () => true);
-
-          node_label.node().classList.add("leaf-node-label");
-
-          try {
-            // Adding EC number to leaf nodes
-            var ec = ecData[node_data.data.name];
-            if (ec.ec_number) {
-              const transform = node_label.attr("transform");
-              const translateRegex = /translate\s*\(\s*([\d.-]+)\s*,\s*([\d.-]+)\s*\)/;
-              const match = transform.match(translateRegex);
-              const x = parseFloat(match[1]);
-              const ec_line = element.insert("line", ":first-child").attr("x1", x).attr("x2", x + 400).attr("y1", 0).attr("y2", 0)
-              ec_line.node().classList.add("branch-tracer");
-              const ec_label = element.append("text").text("EC " + ec.ec_number || "not found").attr("transform", `translate(${x + 400}, 0)`).attr("dy", "3.96").style("font-size", "12px");
-              ec_label.node().classList.add("leaf-node-ec-label");
-            }
-          } catch (error) {
-            //console.error("Error adding EC number to leaf node: ", node_data.data.name, error);
-          }
-          if (node_data.data.name === header) {
-            element.select("text").style("fill", "palevioletred").style("stoke", "palevioletred").style("font-size", "18px");
-          }
+  // Custom menu items for nodes
+  const nodeMenu = useMemo(() => [
+    { // Compare Descendants Option
+      label: function (node) {
+        return node['compare-descendants'] ? "Remove descendants" : "Compare descendants";
+      },
+      onClick: function (node) {
+        if (node['compare-descendants']) {
+          removeNodeFromLogo(node, true);
+          setNodeColor(node, null);
+        } else {
+          pushNodeToEntropyLogo(node);
+        }
+      },
+      toShow: function (node) {
+        if (node.children.length > 0) {
+          return true;
+        } else {
+          return false;
         }
       }
+    }, { // Compare ASR Option
+      label: function (node) {
+        return node['compare-node'] ? "Remove from compare" : "Compare ancestral state";
+      },
+      onClick: function (node) {
+        if (node['compare-node']) {
+          removeNodeFromLogo(node, false);
+          setNodeColor(node, null);
+        } else {
+          pushNodeToLogo(node);
+        }
+      },
+      toShow: function (node) {
+        if (node.children.length > 0) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+    }
+  ], [asrData, leafData]);
 
-      function style_edges(element, edge_data) {
-        try {
-          // Clicking on a branch adds parent and child node to comparison
-          element.on('click', async (event, branch) => {
-            if (branch.selected) {
-              branch.selected = false;
-              event.target.classList.remove('branch-selected');
-              removeNodeFromLogo(branch.source); // Remove the node from logoContent if already present
-              removeNodeFromLogo(branch.target);
+  const leafMenu = [
+    {
+      label: function (node) {
+        return "Uniref Website"
+      },
+      onClick: function (node) {
+        const url = `https://rest.uniprot.org/uniref/search?query=${node.data.name}&fields=id`;
+
+        fetch(url)
+          .then(response => {
+            if (!response.ok) {
+              alert('UniProt database error.');
             } else {
-              branch.selected = true;
-              event.target.classList.add('branch-selected');
-
-              var source = branch.source.data.name;
-              var target = branch.target.data.name;
-              console.log("Selected branch:", source, target);
-              if (!faData[source] || !faData[target]) {
-                console.log("Missing node data for branch.", faData[source], faData[target]);
-                clearRightPanel();
-                return;
+              return response.json();
+            }
+          })
+          .then(data => {
+            if (data && data.results) {
+              const uniref100 = data.results.find(result => result.id.startsWith('UniRef100'));
+              if (uniref100) {
+                const unirefUrl = `https://www.uniprot.org/uniref/${uniref100.id}`;
+                window.open(unirefUrl, '_blank');
               } else {
-                pushNodeToLogo(branch.source);
-                pushNodeToLogo(branch.target);
+                alert('No UniRef100 ID found.');
               }
             }
+          })
+          .catch(error => {
+            console.error('Error checking URL:', error);
+            alert('There was an error checking the URL. Please check your network connection and try again.');
           });
+      },
+      toShow: async function (node) {
+        try {
+          const url = `https://rest.uniprot.org/uniref/search?query=${node.data.name}&fields=id`;
+          const response = await fetch(url);
+
+          if (!response.ok) {
+            return false;
+          }
+
+          const data = await response.json();
+          if (data && data.results) {
+            const uniref100 = data.results.find(result => result.id.startsWith('UniRef100'));
+            return !!uniref100;
+          }
+
+          return false;
         } catch (error) {
-          // Select all descendent branches triggers this error
-          // console.error("Error styling edges:", error);
+          console.error('Error checking URL:', error);
+          return false;
         }
-
       }
-
-      tree.render({
-        'container': "#tree_container",
-        'is-radial': false,
-        'selectable': true,
-        'zoom': true,
-        'align-tips': true,
-        'internal-names': true,
-        width: 8000,
-        height: 4000,
-        'top-bottom-spacing': 'fixed-step',
-        'left-right-spacing': 'fixed-step',
-        'brush': false,
-        'draw-size-bubbles': false, // Must be false so that nodes are clickable
-        'bubble-styler': d => { return 1.5 },
-        'node-styler': style_nodes,
-        'edge-styler': style_edges,
-        'show-scale': false,
-        'font-size': 12,
-        'collapsible': true,
-        'reroot': true,
-        'hide': false, // Causes weird rendering in radial
-      });
-
-      treeRef.current.appendChild(tree.display.show());
-      treeRef.current.querySelector("svg").attributes.width.value = "8000px";
-
-      // Start with pan to input query
-      findAndZoom(header);
     }
-  }, [newickData, faData, asrData, refresh]);
+  ]
+
+  // Deals with tree rendering
+  useEffect(() => {
+    setTreeKey(prev => prev + 1);
+    setSearchOptions( // Used for the search by name menu, fill with whatever info we have
+      (asrData && leafData) ? Object.keys(asrData).concat(Object.keys(leafData)) :
+        (leafData) ? Object.keys(leafData) :
+          (asrData) ? Object.keys(asrData) : []
+    )
+  }, [newickData, asrData, faData, leafData]);
+
+  const renderTree = () => {
+    if (newickData) {
+      if (treeLayout === 'radial') {
+        return <RadialTree
+          key={treeKey}
+          ref={treeRef}
+          data={newickData}
+          nodeStyler={style_nodes}
+          customNodeMenuItems={nodeMenu}
+          customLeafMenuItems={leafMenu}
+          leafStyler={style_leaves}
+          width={1500}
+          linkStyler={style_edges}
+          onNodeClick={onNodeClick}
+          homeNode={"bilR"}
+          state={treeRef.current && treeRef.current.getState()}
+        />;
+      } else if (treeLayout === 'rectangular') {
+        return <RectTree
+          key={treeKey}
+          ref={treeRef}
+          data={newickData}
+          nodeStyler={style_nodes}
+          customNodeMenuItems={nodeMenu}
+          customLeafMenuItems={leafMenu}
+          leafStyler={style_leaves}
+          width={1500}
+          linkStyler={style_edges}
+          onNodeClick={onNodeClick}
+          homeNode={"bilR"}
+          state={treeRef.current && treeRef.current.getState()}
+        />;
+      } else {
+        return <UnrootedTree
+          key={treeKey}
+          ref={treeRef}
+          data={newickData}
+          nodeStyler={style_nodes}
+          customNodeMenuItems={nodeMenu}
+          customLeafMenuItems={leafMenu}
+          customLinkMenuItems={linkMenu}
+          leafStyler={style_leaves_unrooted}
+          width={1500}
+          //linkStyler={style_edges}
+          onNodeClick={onNodeClick}
+          //homeNode={"bilR"} // disabled due to throwing a zoom.js error
+          state={treeRef.current && treeRef.current.getState()}
+        />;
+      }
+    }
+  };
+
 
   /* 
       Remove a node from the comparison
       node: a node object 
+      clade: boolean to indicate if the comparison is for a clade or a node
   */
   const removeNodeFromLogo = (node, clade = false) => {
     setLogoContent(prevLogoContent => {
       const updatedLogoContent = { ...prevLogoContent };
+
       if (clade) {
         node['compare-descendants'] = false;
         delete updatedLogoContent["Information Logo of Clade " + node.data.name];  // Remove the node
@@ -445,7 +528,7 @@ const Results = () => {
         node['compare-node'] = false;
         delete updatedLogoContent["ASR Probability Logo for " + node.data.name];  // Remove the node
       }
-      setNodeColor(node.data.name, null);
+      setNodeColor(node, null);
 
       return updatedLogoContent;  // Return the new state
     });
@@ -456,17 +539,18 @@ const Results = () => {
       node: a node object 
   */
   const pushNodeToLogo = (node) => {
-    // Quick patch for comparing on root. Root is a renamed node, so we need to find the actual header
-    if (node.parent === null) { // is root node
-      node.data.name = "Node1"
+    if (!asrData) {
+      console.warn("ASR data not loaded yet");
+      return;
     }
+
     setImportantResidues([]); // Clear important residues (may cause unnecessary re-renders)
     setLogoContent(prevLogoContent => {
       const updatedLogoContent = { ...prevLogoContent };
       // Add or do nothing if node is already in logoContent
       node['compare-node'] = true;
       updatedLogoContent["ASR Probability Logo for " + node.data.name] = asrData[`${node.data.name}`];
-      setNodeColor(node.data.name, "red");
+      setNodeColor(node, "red");
 
       return updatedLogoContent;  // Return the new state
     });
@@ -478,64 +562,71 @@ const Results = () => {
       Add a node's descendants to the comparison
       node: a node object 
   */
-  const pushNodeToEntropyLogo = (node) => {
+  const pushNodeToEntropyLogo = useCallback((node) => {
+    if (!leafData || Object.keys(leafData).length === 0) {
+      console.warn("Leaf data not loaded yet");
+      return;
+    }
+
     setImportantResidues([]); // Clear important residues (may cause unnecessary re-renders)
     setLogoContent(prevLogoContent => {
       const updatedLogoContent = { ...prevLogoContent };
 
-      var descendants = selectAllDescendants(node, true, false);
-      var desc_fa = "";
-      for (var desc of descendants) {
-        desc_fa += `>${desc.data.name}\n${leafData[desc.data.name]}\n`; // Concat fasta of descendants
+      const missingSequences = [];
+      var descendants = selectAllLeaves(node);
+      if (descendants.length === 0) {
+        console.warn("No descendants found for node:", node.data.name);
+        return;
       }
 
-      if (desc_fa === "") {
-        console.log("No descendants found for node:", node.data.name);
+      var desc_fa = "";
+      for (var desc of descendants) {
+        if (!leafData[desc.data.name]) {
+          missingSequences.push(desc.data.name);
+        } else {
+          desc_fa += `>${desc.data.name}\n${leafData[desc.data.name]}\n`;
+        }
+      }
+
+      if (missingSequences.length > 0) {
+        console.warn("Missing sequences for nodes:", missingSequences.join(", "));
         return updatedLogoContent;
       }
 
       node['compare-descendants'] = true;
-      // Calculates entropies, maps to colors and sets the colorArr state
-      //calcEntropyFromMSA(desc_fa).then((entropy) => mapEntropyToColors(entropy)).then((colors) => { setColorArr(colors) });
 
       updatedLogoContent["Information Logo of Clade " + node.data.name] = desc_fa;
-      setNodeColor(node.data.name, "yellow");
+      setNodeColor(node, "green");
 
-      return updatedLogoContent;  // Return the new state
+      return updatedLogoContent;
     });
     setPipVisible(true);
     setIsRightCollapsed(false);
-  };
+  }, [leafData]);
 
   /* 
       Set the color of a node in the tree
       nodeId: the name of the node
       color: the color to set the node to, or null to remove the color
   */
-  const setNodeColor = (nodeId, color = null) => {
-    d3.selectAll('.internal-node')
-      .each(function () {
-        var node = d3.select(this).data()[0];
-        if (node.data.name === nodeId) {
-          if (color == null) {
-            const circles = d3.select(this).selectAll('circle');
-            if (circles.size() === 2) {
-              circles.filter(function (d, i) {
-                return i === 0; // Remove the first circle when there are two
-              }).remove();
-            }
-          } else {
-            // Calling push node, results in calling setNodeColor twice (possibly due to react state updates), this check prevents adding a circle twice
-            const circles = d3.select(this).selectAll('circle');
-            if (circles.size() === 2) {
-              console.log("Attempted to add circle to node with existing circle");
-            } else {
-              const currRadius = parseInt(d3.select(this).select("circle").attr("r"));
-              d3.select(this).insert("circle", ":first-child").attr("r", currRadius + 2).style("fill", color);
-            }
-          }
-        }
-      });
+  const setNodeColor = (node, color = null) => {
+    const nodeSelection = d3.select(node.nodeElement);
+    const circles = nodeSelection.selectAll('circle');
+
+    if (color === null) {
+      if (circles.size() === 2) {
+        circles.filter((d, i) => i === 0).remove();
+      }
+      return;
+    }
+
+    if (circles.size() === 1) {
+      const currRadius = parseInt(nodeSelection.select("circle").attr("r"));
+      nodeSelection
+        .insert("circle", ":first-child")
+        .attr("r", currRadius + 2)
+        .style("fill", color);
+    }
   };
 
   /* 
@@ -569,11 +660,11 @@ const Results = () => {
       return;
     }
 
-    d3.selectAll('.internal-node')
+    d3.selectAll('.inner-node')
       .each(function () {
         var node = d3.select(this).data()[0];
         if (node.data.name === nodeId) {
-          var descendants = selectAllDescendants(node, true, false); // Get all terminal descendants
+          var descendants = selectAllLeaves(node, true, false); // Get all terminal descendants
           var desc_fa = "";
           for (var desc of descendants) {
             desc_fa += `>${desc.data.name}\n${leafData[desc.data.name]}\n`;
@@ -589,15 +680,15 @@ const Results = () => {
       nodeFasta: the fasta sequence of the node - used to determine the length of the color array
   */
   const applyImportantStructColor = (nodeId, residueList) => {
+    if (!faData) {
+      console.warn("FA data not loaded yet");
+      return;
+    }
     var fa = faData[nodeId];
     var importantColors = Array(fa.length).fill(0x00FF00);
 
     for (var res of residueList) {
-      // Applying gap offset
-      if (gapOffsetArr[res] >= 0) {
-        const pos = res - gapOffsetArr[res]
-        importantColors[pos] = 0xFF0000;
-      }
+      importantColors[res] = 0xFF0000;
     }
 
     setColorArr(importantColors);
@@ -613,15 +704,14 @@ const Results = () => {
     setIsRightCollapsed(false);
     setColorArr(null);
     setLogoContent({});
-    var desc = selectAllDescendants(treeObj.getNodes(), false, true);
+    var desc = d3.selectAll(".inner-node").data();
     // Map set node-compare to false over desc
     desc.forEach(node => {
       node['compare-node'] = false;
       node['compare-descendants'] = false;
-      setNodeColor(node.data.name, null);
+      setNodeColor(node, null);
     });
-    d3.selectAll('.branch-selected').classed('branch-selected', false);
-    treeRef.current.style.width = '100%';
+    d3.selectAll('.link--highlight').classed('.link--highlight', false);
   }
 
   /*
@@ -633,17 +723,8 @@ const Results = () => {
   };
 
   /*
-      Accounts for gaps when scrolling to residue highlighted in structure viewer
-  */
-
-  const handleScrollLogosTo = (index) => {
-    logoStackRef.current.scrollToHighlightIndex(structLogoMapArr[index]);
-  }
-
-  /*
       Handles the slider for scrolling through the sequence logo
   */
-
   const handleSlider = (e, value) => {
     setScrollPosition(value + 1);
     logoStackRef.current.scrollToIndex(value);
@@ -660,7 +741,7 @@ const Results = () => {
     setLogoContent(newLogoContent);
 
     // Below syncs highlights on TOL with remove action in logo stack
-    d3.selectAll('.internal-node')
+    d3.selectAll('.inner-node')
       .each(function () {
         var node = d3.select(this).data()[0];
         if (node.data.name === header.replace("ASR Probability Logo for ", "") ||
@@ -682,17 +763,17 @@ const Results = () => {
       nodeId: the name of the node
   */
   const setImportantView = (nodeId) => {
-    d3.selectAll('.internal-node')
+    d3.selectAll('.inner-node')
       .each(function () {
         var node = d3.select(this).data()[0];
         if (node.data.name === nodeId) {
           setLogoContent({});
-          var desc = selectAllDescendants(treeObj.getNodes(), false, true);
+          var desc = selectAllNodes(treeRef.current.getRoot(), false, true);
           // Map set node-compare to false over desc
           desc.forEach(node => {
             node['compare-node'] = false;
             node['compare-descendants'] = false;
-            setNodeColor(node.data.name, null);
+            setNodeColor(node, null);
           });
           pushNodeToLogo(node)
           pushNodeToLogo(node.parent);
@@ -704,121 +785,16 @@ const Results = () => {
     setIsRightCollapsed(false);
     setPipVisible(true);
     setTimeout(() => {
-      findAndZoom(nodeId);
+      treeRef.current.findAndZoom(nodeId, treediv);
     }, 2000);
   }
 
-  /*
-      Search function to find and pan to a node
-      query: the name of the node to search for
-  */
-  const findAndZoom = (query) => {
-    const svg = d3.select("#tree_container").select("svg");
-    const centerOffsetX = treeRef.current.parentNode.clientWidth / 2;
-    const centerOffsetY = treeRef.current.parentNode.clientHeight / 2;
-    const zoom = d3.zoom().on("zoom", (event) => {
-      svg.select("g").attr("transform", event.transform);
-    });
-    svg.call(zoom);
-
-    var targetNode;
-    d3.selectAll('.node')
-      .each(function () {
-        const node = d3.select(this).data()[0];
-        const elem = d3.select(this);
-        if (node.data.name === query) {
-          targetNode = node;
-          const targetX = node.x;
-          const targetY = node.y;
-
-          const line = elem.select("line");
-
-          line.transition()
-            .delay(1000)
-            .duration(500)
-            .style("stroke", "red")
-            .style("stroke-width", 5)
-            .style("stroke-dasharray", "10,4")
-            .transition()
-            .duration(500)
-            .style("stroke-width", 1)
-            .style("stroke", null)
-            .style("stroke-dasharray", "3,4")
-            .transition()
-            .duration(500)
-            .style("stroke-width", 5)
-            .style("stroke", "red")
-            .style("stroke-dasharray", "10,4")
-            .transition()
-            .duration(500)
-            .style("stroke-width", 1)
-            .style("stroke", null)
-            .style("stroke-dasharray", "3,4");
-
-          svg.transition()
-            .duration(750)
-            .call(zoom.transform, d3.zoomIdentity.scale(1).translate(-targetY + centerOffsetX, -targetX + centerOffsetY)); // Weird, svg X and Y are flipped
-        }
-      });
-
-    d3.selectAll('.internal-node')
-      .each(function () {
-        const node = d3.select(this).data()[0];
-        if (node.data.name === query) {
-          targetNode = node;
-          const targetX = node.x;
-          const targetY = node.y;
-
-          const circle = d3.select(this).select("circle");
-          const currRadius = circle.attr("r");
-          const currColor = circle.style("fill");
-          const newRadius = (currRadius * 2).toString();
-
-
-          circle.transition()
-            .delay(1000)
-            .style("fill", "red")
-            .style("r", newRadius)
-            .transition()
-            .duration(500)
-            .style("fill", currColor)
-            .style("r", currRadius)
-            .transition()
-            .duration(500)
-            .style("fill", "red")
-            .style("r", newRadius)
-            .transition()
-            .duration(500)
-            .style("fill", currColor)
-            .style("r", currRadius);
-
-          svg.transition()
-            .duration(750)
-            .call(zoom.transform, d3.zoomIdentity.scale(1).translate(-targetY + centerOffsetX, -targetX + centerOffsetY)); // Adjust the scale and translation as needed
-        }
-      });
-
-    if (!targetNode) {
-      setNotification('Node not found');
-      setTimeout(() => {
-        setNotification('');
-      }, 2000);
-    }
-  };
-
-  const toggleLeafLabels = () => {
-    d3.selectAll('.leaf-node-label')
-      .each(function () {
-        const label = d3.select(this);
-        if (label.style("display") === "none") {
-          label.style("display", "block");
-        } else {
-          label.style("display", "none");
-        }
-      });
-  };
+  /**
+   * Handles the click event for the "Show EC labels" button.
+   * Toggles the visibility of the EC labels on the tree.
+   */
   const toggleECLabels = () => {
-    d3.selectAll('.leaf-node-ec-label')
+    d3.selectAll('.ec-label')
       .each(function () {
         const label = d3.select(this);
         if (label.style("display") === "none") {
@@ -885,7 +861,7 @@ const Results = () => {
       .file("nodes.json", JSON.stringify(nodeData, null, 2))
       .file("seq.pdb", structData)
       .file("seq.state.zst", compressedAsr);
-      
+
     zip.generateAsync({ type: "blob" }).then(function (blob) {
       element.href = URL.createObjectURL(blob);
       element.download = `${jobId}_all.zip`;
@@ -1067,7 +1043,7 @@ const Results = () => {
                 selectOnFocus
                 freeSolo
                 size="small"
-                options={Object.keys(faData).concat(Object.keys(leafData))}
+                options={searchOptions}
                 getOptionLabel={(option) => option}
                 style={{ width: 150 }}
                 renderInput={(params) =>
@@ -1084,7 +1060,7 @@ const Results = () => {
                       inputLabel: { style: { fontSize: '14px' } },
                     }}
                   />}
-                onChange={(event, value) => findAndZoom(value)}
+                onChange={(event, value) => treeRef.current.findAndZoom(value, treediv)}
               />}
             {notification && (
               <div className="notification">
@@ -1117,12 +1093,14 @@ const Results = () => {
           </div>
         </div>
         <div className="view">
-          <div className="tree-div" style={{ width: isLeftCollapsed ? '2%' : (pipVisible ? '50%' : '100%'), textAlign: "center" }}>
+          <div className="tree-div" ref={treediv} style={{ width: isLeftCollapsed ? '2%' : (pipVisible ? '50%' : '100%'), textAlign: "center" }}>
             <ButtonGroup variant="contained" aria-label="Basic button group">
               <Tooltip title="Recenter on input" placement="top">
-                <Button onClick={() => findAndZoom(inputHeader)}><FilterCenterFocusIcon /></Button>
+                <Button onClick={() => {
+                  treeRef.current && treeRef.current.findAndZoom("bilR", treediv);
+                }}><FilterCenterFocusIcon /></Button>
               </Tooltip>
-              <Tooltip title="Label Toggles" placement="top">
+              <Tooltip title="Labels" placement="top">
                 <Button
                   aria-controls={labelMenuOpen ? 'basic-menu' : undefined}
                   aria-haspopup="true"
@@ -1138,18 +1116,26 @@ const Results = () => {
                     'aria-labelledby': 'basic-button',
                   }}
                 >
-                  <MenuItem onClick={() => toggleLeafLabels()}>Toggle leaf labels</MenuItem>
-                  <MenuItem onClick={() => toggleECLabels()}>Toggle EC labels</MenuItem>
+                  {(treeLayout !== "unrooted") && (<>
+                    <MenuItem onClick={() => treeRef.current && treeRef.current.setVariableLinks(prev => !prev)}>Variable Links</MenuItem>
+                    <MenuItem onClick={() => treeRef.current && treeRef.current.setTipAlign(prev => !prev)}>Align Tips</MenuItem>
+                  </>)}
+                  <MenuItem onClick={() => treeRef.current && treeRef.current.setDisplayLeaves(prev => !prev)}>Toggle Labels</MenuItem>
                 </Menu>
               </Tooltip>
               <Tooltip title="Reset tree" placement="top">
-                <Button onClick={() => setRefresh(prev => !prev)}><RestoreIcon /></Button>
+                <Button onClick={() => treeRef.current && treeRef.current.refresh()}><RestoreIcon /></Button>
+              </Tooltip>
+              <Tooltip title="Cycle layouts" placement="top">
+                <Button
+                  aria-controls={labelMenuOpen ? 'basic-menu' : undefined}
+                  aria-haspopup="true"
+                  aria-expanded={labelMenuOpen ? 'true' : undefined}
+                  onClick={cycleLayout}
+                >{treeLayout}</Button>
               </Tooltip>
             </ButtonGroup>
-            <div
-              id="tree_container"
-              ref={treeRef}
-            ><Skeleton variant="rounded" height="100em" animation="wave" sx={{ bgcolor: 'lightgrey' }} /></div>
+            {renderTree()}
           </div>
 
           {Object.keys(logoContent).length > 0 && (
@@ -1231,7 +1217,7 @@ const Results = () => {
                     valueLabelDisplay="off"
                     min={0}
                     max={seqLength - 1}
-                    value={scrollPosition}
+                    value={scrollPosition || 0}
                     onChange={handleSlider}
                     track={false}
                     style={{ width: '100%', margin: "0px 2em" }}
@@ -1298,7 +1284,7 @@ const Results = () => {
                     removeNodeHandle={handleNodeRemove}
                     applyEntropyStructColor={applyEntropyStructColor}
                     applyImportantStructColor={applyImportantStructColor}
-                    findAndZoom={findAndZoom}
+                    findAndZoom={function (name) { treeRef.current.findAndZoom(name, treediv) }}
                     ref={logoStackRef}
                   />
                 </div>
@@ -1331,7 +1317,7 @@ const Results = () => {
                       selectedResidue={selectedResidue}
                       colorFile={colorArr}
                       hoveredResidue={hoveredResidue}
-                      scrollLogosTo={(index) => handleScrollLogosTo(index)}
+                      scrollLogosTo={(index) => logoStackRef.current.scrollToHighlightIndex(index)}
                     />
                   </div>
                 </div>
@@ -1340,7 +1326,7 @@ const Results = () => {
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
