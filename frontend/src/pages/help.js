@@ -52,6 +52,7 @@ LFDVQALEDKGVQVSFVGDCNERAADINRAVEEGYLAANVL`}
                         </code>
                     </pre>
                     <p>We recommend that the header should not contain special characters (i.e. white space, punctuation marks, or special symbols like `@`, `#`, `$`), and ensure that the sequence does not contain gaps or other invalid amino acid characters.</p>
+                    <p>If you are downloading a PDB file from RCSB, please ensure that it is the legacy PDB format and NOT an mmCIF or .cif file. (When you click Download Files, select Legacy PDB Format) You can also use the output of AlphaFold or ESMfold.</p>
                     <ol>
                         <li>Click <b>Upload</b> to provide the required input file.</li>
                         <li>Optionally, enter your email to receive the results automatically when they are done.</li>
