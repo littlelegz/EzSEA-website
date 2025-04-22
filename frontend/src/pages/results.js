@@ -41,7 +41,7 @@ import LogoStack from '../components/logo-stack.js';
 import MolstarViewer from "../components/molstar.js";
 import Navbar from "../components/navbar.js";
 import { tolContext } from '../components/tolContext.js';
-import { readFastaToDict, parseNodeData, calcEntropyFromMSA, mapEntropyToColors, jsonToFasta } from '../components/utils.js';
+import { fastaToDict, parseNodeData, calcEntropyFromMSA, mapEntropyToColors, jsonToFasta } from '../components/utils.js';
 
 // Tree3
 import { selectAllLeaves, selectAllNodes } from 'tree3-react';
