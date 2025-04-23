@@ -1,3 +1,4 @@
+// Import dependencies
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -8,39 +9,32 @@ const emailjs = require('@emailjs/nodejs');
 const k8s = require('@kubernetes/client-node');
 const multer = require('multer');
 
+// Kubernetes configuration
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 const k8sApi = kc.makeApiClient(k8s.CoreV1Api);
 
+// Multer configuration for file uploads
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, '/output/input/');
-    },
+    destination: (req, file, cb) => cb(null, '/output/input/'),
     filename: (req, file, cb) => {
         const jobId = req.body.job_id;
-        var fileExt = file.originalname.split('.').pop();
-        if (fileExt !== 'pdb') {
-            fileExt = 'fasta'; // K8 jobs expect .fasta extensions
-        }
+        const fileExt = file.originalname.split('.').pop() === 'pdb' ? 'pdb' : 'fasta';
         cb(null, `${jobId}.${fileExt}`);
     }
 });
+const upload = multer({ storage });
 
-const upload = multer({ storage: storage });
-
-var app = express();
+// Initialize Express app and logger
+const app = express();
 const logger = pino({
     transport: {
         target: 'pino-pretty',
-        options: {
-            colorize: true,
-            levelFirst: true,
-
-        }
-    },
+        options: { colorize: true, levelFirst: true }
+    }
 });
-let data = null;
 
+// Middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: false, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'build')));
@@ -77,15 +71,16 @@ function monitorJob(jobId, jobType, recipient) { // Need to handle failure case,
         }
     });
 }
+
 const sendSuccessEmail = async (recipient, jobId) => {
     try {
-        const response = await emailjs.send("service_4xzjhqa", "template_tvfo26t", {
+        const response = await emailjs.send("service_key", "template_key", {
             recipient: recipient,
             jobId: jobId,
         },
             {
-                publicKey: "XERY1jPqO6z7AFRg9",
-                privateKey: "hJinkbgdeR5NnpDnlENm-",
+                publicKey: "PUBLICKEY",
+                privateKey: "PRIVATEKEY",
             });
         logger.info('Email sent successfully:', response);
     } catch (error) {
@@ -95,19 +90,20 @@ const sendSuccessEmail = async (recipient, jobId) => {
 
 const sendFailureEmail = async (recipient, jobId) => {
     try {
-        const response = await emailjs.send("service_4xzjhqa", "template_7w1hzy5", {
+        const response = await emailjs.send("service_key", "template_key", {
             recipient: recipient,
             jobId: jobId,
         },
             {
-                publicKey: "XERY1jPqO6z7AFRg9",
-                privateKey: "hJinkbgdeR5NnpDnlENm-",
+                publicKey: "PUBLICKEY",
+                privateKey: "PRIVATEKEY",
             });
         logger.info('Email sent successfully:', response);
     } catch (error) {
         logger.info("Error sending email:", error);
     }
 };
+
 app.post("/submit", upload.single('input_file'), (req, res) => {
     // Retrieve JSON from the POST body 
     var error = null;
@@ -366,7 +362,7 @@ app.get("/results/:id", async (req, res) => {
     try {
         var pdbFiles = fs.readdirSync(folderPath).filter(fn => fn.endsWith('.pdb')); // Returns an array of pdb files
         if (!pdbFiles) {
-            logger.warn(`No PDB files found in folder: ${folderPath}`);
+            logger.error(`No PDB files found in folder: ${folderPath}`);
             structPath = null;
         } else {
             structPath = path.join(folderPath, pdbFiles[0]);
@@ -444,6 +440,10 @@ app.get("/results/:id", async (req, res) => {
 
     const pocketResults = await Promise.all(pocketPromises)
         .then(results => {
+            const allErrors = results.every(result => result.pocketError); // Check if all results have pocketError
+            if (allErrors) {
+                return { pocketError: "Error reading all pocket files." };
+            }
             return results.reduce((acc, result, index) => {
                 acc[`pocket${index + 1}`] = result.pocket || result.pocketError;
                 return acc;
@@ -451,7 +451,7 @@ app.get("/results/:id", async (req, res) => {
         })
         .catch(err => {
             logger.error("Error processing pocket files: " + err);
-            return {};
+            return { pocketError: "Error processing pocket files." };
         });
 
     // Collect the resolved results into one object
@@ -465,9 +465,18 @@ app.get("/results/:id", async (req, res) => {
     // Attach the pocket dictionary to the response
     response.pockets = pocketResults;
 
+    // If all pockets failed, add a general pocketError
+    if (pocketResults.pocketError) {
+        response.pocketError = pocketResults.pocketError;
+    }
+
+    if (structPath === "") {
+        response.structError = "No structure file found.";
+    }
+
     // Send response with the files that were successfully read and any error messages
     if (response['treeError'] && response['leafError'] && response['ancestralError']
-        && response['nodesError'] && response['structError'] && response['inputError']
+        && response['nodesError'] && response['inputError']
         && response['ecError'] && response['asrError']) {
         return res.status(500).json({ error: "Failed to read all files." });
     } else {
@@ -523,8 +532,15 @@ app.get("/status/:id", (req, res) => {
                     } else {
                         return res.status(200).json({ logs: ["Allocating resources for job, this may take a few minutes."], status: "alloc" });
                     }
-                } else if (status === "Failed") {
-                    return res.status(200).json({ status: status });
+                } else if (status === "Failed") { // Failure case
+                    fs.readFile(filePath, 'utf8', (err, data) => {
+                        if (err) {
+                            logger.error(`Error reading log file for job ${id}: ${err}`);
+                            return res.status(500).json({ logs: "Failed to retrieve logs for the failed job.", status: status });
+                        }
+                        const logsArray = data.split('\n').filter(line => line.trim().length > 0); // Remove empty lines
+                        return res.status(200).json({ logs: logsArray, status: status });
+                    });
                 } else { // status is Running, Succeeded, Unknown
                     if (status === "Succeeded") {
                         return res.status(200).json({ logs: "", status: "done" });
@@ -539,7 +555,7 @@ app.get("/status/:id", (req, res) => {
                                 }
                             }
                             const logsArray = data.split('\n').filter(line => line.trim().length > 0); // Remove empty lines
-                            const lastLine = logsArray[logsArray.length - 1]; 
+                            const lastLine = logsArray[logsArray.length - 1];
 
                             if (/Error|failed|Stopping/i.test(lastLine)) {
                                 status = "Error"; // Check for error keywords
@@ -568,9 +584,6 @@ app.get("/status/:id", (req, res) => {
         logger.error("Error getting GKE logs:", err);
         return res.status(500).json({ error: "There was a backend error. Please try again later." });
     }
-
-    // Query kubectl pods for job status 
-    // `kubectl get pods -l id=${id},type=run --no-headers -o custom-columns=":status.phase"`
 });
 
 // Server listening on PORT 5000
