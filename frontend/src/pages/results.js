@@ -228,7 +228,7 @@ const Results = () => {
 
           // read pocketData
           if (data.pocketError) {
-            setErrorPopupVisible(true);
+            // setErrorPopupVisible(true);
             console.error("Error fetching pocket data:", data.pocketError);
           } else {
             setPocketData(data.pockets);
