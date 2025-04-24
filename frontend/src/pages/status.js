@@ -56,11 +56,7 @@ const Status = () => {
 
         // Fetch logs every 20 seconds
         const interval = setInterval(() => {
-            if (jobStatus === "Error" || jobStatus === "Failed" || error !== null) {
-                clearInterval(interval);
-            } else {
-                fetchLogs();
-            }
+            fetchLogs();
         }, 20000);
 
         return () => clearInterval(interval);
