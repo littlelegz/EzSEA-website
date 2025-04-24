@@ -15,7 +15,7 @@ const Status = () => {
     const { jobId } = useParams();
     const [jobStatus, setJobStatus] = useState('');
     const location = useLocation();
-    const { email, time, submitError } = location.state || {};
+    const { email } = location.state || {};
     const [logs, setLogs] = useState(['']);
     const statusList = ['done', 'annot', 'delineation', 'tree', 'align', 'db', 'container', 'alloc'];
     const statusMsg = ['Clean and finish', 'Retrieving annotations', 'Calculating delineation',
@@ -38,6 +38,7 @@ const Status = () => {
             }
             console.log("status: ", data.status);
             console.log("logs: ", data.logs);
+            console.log("error", data.error);
 
             setTimeout(() => {
             }, 1000);
