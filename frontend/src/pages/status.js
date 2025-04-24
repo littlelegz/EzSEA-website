@@ -106,10 +106,14 @@ const Status = () => {
                 </div>
                 <hr />
                 {(["Unknown", "Failed", "Error"].includes(jobStatus) || error) && (
-                    <ConsoleLogs
-                        logs={logs}
-                        status={jobStatus || error}
-                    />
+                    <div>
+                        <ConsoleLogs
+                            logs={logs}
+                            status={jobStatus || error}
+                        />
+                        <hr />
+                        <p>If the error persists, please contact us at <a href="mailto:jiangak@nih.gov">jiangak (at) nih (dot) gov</a> with the ID of your failed job.</p>
+                    </div>
                 )}
                 <div>
                     <p>Job ID: {jobId}</p>
