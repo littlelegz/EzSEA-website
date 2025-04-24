@@ -296,7 +296,7 @@ const Submit = () => {
   };
 
   const cleanFileContent = (content) => {
-    return content.replace(/[^A-Za-z0-9_\.\n\r>]/g, '');
+    return content.replace(/[^A-Za-z0-9_\.\n\r>]/g, '_');
   };
 
   const readFileContent = (file) => {
