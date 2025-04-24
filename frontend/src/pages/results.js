@@ -252,7 +252,7 @@ const Results = () => {
 
   const style_leaves = useMemo(() => (node) => {
     if (!node) return;
-    if (node.data.name === "bilR") {
+    if (node.data.name === inputHeader) {
       d3.select(node.labelElement).style("fill", "red").style("font-size", () => {
         const currentSize = d3.select(node.labelElement).style("font-size");
         const sizeNum = parseFloat(currentSize);
@@ -283,7 +283,41 @@ const Results = () => {
             const hasRotate180 = originalTransform?.endsWith("rotate(180)");
             return hasRotate180 ? "-20em" : "20em";
           })
-          .attr("class", "ec-label");
+          .attr("class", "ec-label")
+          .on("click", (event) => { // Hacky submenu, Tree3 doesn't have submenu for this yet
+            const menu = document.createElement('div');
+            menu.style.position = 'absolute';
+            menu.style.left = `${event.pageX}px`;
+            menu.style.top = `${event.pageY}px`;
+            menu.style.background = 'white';
+            menu.style.border = '1px solid #ccc';
+            menu.style.borderRadius = '4px';
+            menu.style.padding = '8px';
+            menu.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+            menu.style.zIndex = '1000';
+
+            const link = document.createElement('a');
+            link.href = `https://enzyme.expasy.org/EC/${ec.ec_number}`;
+            link.target = '_blank';
+            link.textContent = 'View on ExPASy';
+            link.style.color = '#2196f3';
+            link.style.textDecoration = 'none';
+            menu.appendChild(link);
+
+            document.body.appendChild(menu);
+
+            // Close menu when clicking outside
+            const closeMenu = (e) => {
+              if (!menu.contains(e.target)) {
+                document.body.removeChild(menu);
+                document.removeEventListener('click', closeMenu);
+              }
+            };
+
+            setTimeout(() => {
+              document.addEventListener('click', closeMenu);
+            }, 0);
+          });
       }
     }
   }, [ecData]);
