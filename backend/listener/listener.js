@@ -490,11 +490,11 @@ app.get("/status/:id", (req, res) => {
     logger.info("Serving status for job: " + id);
     try {
         k8sApi.listNamespacedPod('default', undefined, undefined, undefined, undefined, `id=${id},type=run`).then((podsRes) => {
-            if (podsRes.body.items.length < 1) { // Kubectl no longer tracking job or job not present
+            if (podsRes.body.items.length < 1) { // Kubectl no longer tracking job or job not present, read log file for status
                 fs.readFile(filePath, 'utf8', (err, data) => {
                     if (err) {
                         logger.error(`Error reading log file for job ${id}, does it exist?`);
-                        return res.status(500).json({ error: "There was an error reading the log file. Please ensure your job ID is correct." });
+                        return res.status(200).json({ error: "Job not found. Please ensure your job ID is correct." });
                     }
                     const logsArray = data.split('\n').filter(line => line.trim().length > 0); // Remove empty lines
                     let status = "Unknown"; // Default status
@@ -516,7 +516,7 @@ app.get("/status/:id", (req, res) => {
                     return res.status(200).json({ logs: logsArray, status: status }); // Possibly missing cases here
                 });
                 return;
-            } else { // Job is still running / being tracked by kubectl
+            } else { // Job is still running and being tracked by kubectl
                 const pod = podsRes.body.items[0];
                 var status = pod.status.phase.trim();
 
@@ -542,6 +542,7 @@ app.get("/status/:id", (req, res) => {
                         return res.status(200).json({ logs: logsArray, status: status });
                     });
                 } else { // status is Running, Succeeded, Unknown
+                    // Note: When will the status be Unknown?
                     if (status === "Succeeded") {
                         return res.status(200).json({ logs: "", status: "done" });
                     } else {
