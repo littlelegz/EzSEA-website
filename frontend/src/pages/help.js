@@ -66,7 +66,7 @@ LFDVQALEDKGVQVSFVGDCNERAADINRAVEEGYLAANVL`}
                     <h2>Job Parameters</h2>
                 </div>
                 <div className="help-content">
-                    <img src={process.env.PUBLIC_URL + "/help_homology.png"} alt="delineation" style={{ width: "60%" }}></img>
+                    <img src={process.env.PUBLIC_URL + "/help_homology.png"} alt="delineation" style={{ width: "100%" }}></img>
                     <p>The parameters in the <strong>Homolog</strong> tab allow you to customize the database used and the number of homologs retrieved.</p>
                     <table className="table">
                         <thead className="thead-dark">
@@ -86,7 +86,7 @@ LFDVQALEDKGVQVSFVGDCNERAADINRAVEEGYLAANVL`}
                             </tr>
                         </tbody>
                     </table>
-                    <img src={process.env.PUBLIC_URL + "/help_phylogeny.png"} alt="delineation" style={{ width: "60%" }}></img>
+                    <img src={process.env.PUBLIC_URL + "/help_phylogeny.png"} alt="delineation" style={{ width: "100%" }}></img>
                     <p>The parameters in the <strong>Phylogeny</strong> tab allow the user to customize the phylogenetic tree built.</p>
                     <table className="table">
                         <thead className="thead-dark">
@@ -110,7 +110,7 @@ LFDVQALEDKGVQVSFVGDCNERAADINRAVEEGYLAANVL`}
                             </tr>
                         </tbody>
                     </table>
-                    <img src={process.env.PUBLIC_URL + "/help_delineation.png"} alt="delineation" style={{ width: "60%" }}></img>
+                    <img src={process.env.PUBLIC_URL + "/help_delineation.png"} alt="delineation" style={{ width: "100%" }}></img>
                     <p>The parameters in the <strong>Delineation</strong> tab change the way the nodes are scored when delineating the enzyme.</p>
                     <table className="table">
                         <thead className="thead-dark">
@@ -140,7 +140,7 @@ LFDVQALEDKGVQVSFVGDCNERAADINRAVEEGYLAANVL`}
                     <h2>Job Status Page</h2>
                 </div>
                 <div className="help-content">
-                    <img src={process.env.PUBLIC_URL + "/status.png"} alt="delineation" style={{ width: "60%" }}></img>
+                    <img src={process.env.PUBLIC_URL + "/status.png"} alt="delineation" style={{ width: "100%" }}></img>
                     <p>After clicking submit, you will be taken to a page to view the status of your job. Do not close the window unless you saved link provided on the status page, or provided an email on job submission.</p>
                     <p>If the job errors out, it will be reflected on the status page. Please double check the file formats you uploaded. If further issues occur, contact us through the email below.</p>
                 </div>
@@ -150,9 +150,9 @@ LFDVQALEDKGVQVSFVGDCNERAADINRAVEEGYLAANVL`}
                 </div>
                 <div className="help-content">
                     <p>Once in the results page, you will see the generated phylogenetic tree and a list of Key Nodes, ranked by score. Click on a node to get started. Note that you can search for any node.</p>
-                    <img src={process.env.PUBLIC_URL + "/results_1.png"} alt="results1" style={{ width: "80%" }}></img>
+                    <img src={process.env.PUBLIC_URL + "/results_1.png"} alt="results1" style={{ width: "100%" }}></img>
                     <p>You will then see three sequence logos, along with the predicted 3D structure of your input sequence.</p>
-                    <img src={process.env.PUBLIC_URL + "/results_2.png"} alt="results2" style={{ width: "80%" }}></img>
+                    <img src={process.env.PUBLIC_URL + "/results_2.png"} alt="results2" style={{ width: "100%" }}></img>
                     <ol>
                         <li>Key Nodes, ordered by score. Only the top 10 nodes are shown, but you can search for any node to see its result.</li>
                         <li>View generated phylogenetic tree</li>

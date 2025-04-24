@@ -435,7 +435,7 @@ const Results = () => {
         return "Uniref Website"
       },
       onClick: function (node) {
-        const url = `https://rest.uniprot.org/uniref/search?query=${node.data.name}&fields=id`;
+        const url = `https://rest.uniprot.org/uniref/search?query=${node.data.name.split('_')[0]}&fields=id`;
 
         fetch(url)
           .then(response => {
