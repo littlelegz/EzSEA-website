@@ -10,6 +10,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PendingIcon from '@mui/icons-material/Pending';
 import { useParams } from 'react-router-dom';
+import ConsoleLogs from '../components/consolelog';
 
 const Status = () => {
     const { jobId } = useParams();
@@ -17,6 +18,7 @@ const Status = () => {
     const location = useLocation();
     const { email } = location.state || {};
     const [logs, setLogs] = useState(['']);
+    const [error, setError] = useState(null);
     const statusList = ['done', 'annot', 'delineation', 'tree', 'align', 'db', 'container', 'alloc'];
     const statusMsg = ['Clean and finish', 'Retrieving annotations', 'Calculating delineation',
         'Building tree', 'Performing alignment', 'Querying database',
@@ -39,6 +41,7 @@ const Status = () => {
             console.log("status: ", data.status);
             console.log("logs: ", data.logs);
             console.log("error", data.error);
+            setError(data.error);
 
             setTimeout(() => {
             }, 1000);
@@ -53,7 +56,7 @@ const Status = () => {
 
         // Fetch logs every 20 seconds
         const interval = setInterval(() => {
-            if (jobStatus === "Error") {
+            if (jobStatus === "Error" || jobStatus === "Failed" || error !== null) {
                 clearInterval(interval);
             } else {
                 fetchLogs();
@@ -101,7 +104,13 @@ const Status = () => {
                         {renderStatusLoading()}
                     </div>
                 </div>
-                <hr></hr>
+                <hr />
+                {(["Unknown", "Failed", "Error"].includes(jobStatus) || error) && (
+                    <ConsoleLogs
+                        logs={logs}
+                        status={jobStatus || error}
+                    />
+                )}
                 <div>
                     <p>Job ID: {jobId}</p>
                     <p>{email ? `Notification will be sent to: ${email}` : "No email was provided."}</p>
