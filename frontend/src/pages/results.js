@@ -292,7 +292,7 @@ const Results = () => {
             menu.style.background = 'white';
             menu.style.border = '1px solid #ccc';
             menu.style.borderRadius = '4px';
-            menu.style.padding = '8px';
+            menu.style.padding = '4px';
             menu.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
             menu.style.zIndex = '1000';
 

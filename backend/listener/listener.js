@@ -104,6 +104,7 @@ const sendFailureEmail = async (recipient, jobId) => {
     }
 };
 
+// Submit endpoint
 app.post("/submit", upload.single('input_file'), (req, res) => {
     // Retrieve JSON from the POST body 
     var error = null;
@@ -189,7 +190,7 @@ app.post("/submit", upload.single('input_file'), (req, res) => {
                                     "mkdir -p /database/output/EzSEA_" + job_id + "/Visualization/ "
                                     + "&& ./run-esm-fold.sh -i /database/output/input/" + job_id
                                     + ".fasta --pdb /database/output/EzSEA_" + job_id + "/Visualization/"
-                                    + "&& fpocket -f /database/output/EzSEA_" + job_id + "/Visualization/" + header + ".pdb"
+                                    + "&& fpocket -f /database/output/EzSEA_" + job_id + "/Visualization/" + header + ".pdb" // esmfold output is formatted as [header].pdb, this can be an issue if the header length is too long
                                     + "&& mv /database/output/EzSEA_" + job_id + "/Visualization/*_out/pockets /database/output/EzSEA_" + job_id + "/Visualization/"
                                 ],
                                 "resources": {
@@ -336,6 +337,7 @@ app.post("/submit", upload.single('input_file'), (req, res) => {
     }, 3000);
 });
 
+// Results endpoint
 app.get("/results/:id", async (req, res) => {
     const id = req.params.id;
     const folderPath = `/output/EzSEA_${id}/Visualization`;
@@ -484,6 +486,7 @@ app.get("/results/:id", async (req, res) => {
     }
 });
 
+// Status endpoint
 app.get("/status/:id", (req, res) => {
     const id = req.params.id;
     const filePath = `/output/EzSEA_${id}/EzSEA.log`;
@@ -494,7 +497,9 @@ app.get("/status/:id", (req, res) => {
                 fs.readFile(filePath, 'utf8', (err, data) => {
                     if (err) {
                         logger.error(`Error reading log file for job ${id}, does it exist?`);
-                        return res.status(200).json({ error: "Job not found. Please ensure your job ID is correct." });
+                        return res.status(200).json({ error: "Job not found. Please ensure your job ID is correct.",
+                            logs: ["If you just submitted your job, please allow some time for it to start processing."]
+                         });
                     }
                     const logsArray = data.split('\n').filter(line => line.trim().length > 0); // Remove empty lines
                     let status = "Unknown"; // Default status
