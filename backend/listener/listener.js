@@ -121,7 +121,7 @@ app.post("/submit", upload.single('input_file'), (req, res) => {
     var email = null;
 
     try {
-        // Get file from multer
+        // Get uploaded file from multer
         input_file = req.file;
         input_file_name = req.file.originalname;
         ({
@@ -166,6 +166,8 @@ app.post("/submit", upload.single('input_file'), (req, res) => {
 
             logger.info("Queuing ESMfold run: " + job_id);
 
+            // Queueing kubectl job for ESMfold, job specs are first written out to file and then applied
+            // This is a workaround for the k8sapi.createNamespacedPod not working properly (inproper formatting)
             const struct_command = {
                 "apiVersion": "batch/v1",
                 "kind": "Job",
@@ -244,7 +246,6 @@ app.post("/submit", upload.single('input_file'), (req, res) => {
                 }
             });
         });
-
     }
 
     logger.info("Queuing EzSEA run: " + job_id);
@@ -497,9 +498,10 @@ app.get("/status/:id", (req, res) => {
                 fs.readFile(filePath, 'utf8', (err, data) => {
                     if (err) {
                         logger.error(`Error reading log file for job ${id}, does it exist?`);
-                        return res.status(200).json({ error: "Job not found. Please ensure your job ID is correct.",
+                        return res.status(200).json({
+                            error: "Job not found. Please ensure your job ID is correct.",
                             logs: ["If you just submitted your job, please allow some time for it to start processing."]
-                         });
+                        });
                     }
                     const logsArray = data.split('\n').filter(line => line.trim().length > 0); // Remove empty lines
                     let status = "Unknown"; // Default status
@@ -546,41 +548,38 @@ app.get("/status/:id", (req, res) => {
                         const logsArray = data.split('\n').filter(line => line.trim().length > 0); // Remove empty lines
                         return res.status(200).json({ logs: logsArray, status: status });
                     });
-                } else { // status is Running, Succeeded, Unknown
-                    // Note: When will the status be Unknown?
-                    if (status === "Succeeded") {
-                        return res.status(200).json({ logs: "", status: "done" });
-                    } else {
-                        fs.readFile(filePath, 'utf8', (err, data) => {
-                            if (err) {
-                                if (status === "Running") {
-                                    return res.status(200).json({ logs: ['Generating logs...'], status: "container" })
-                                } else {
-                                    logger.error("Error reading file:", err);
-                                    return res.status(500).json({ error: "No log file was found for this job." });
-                                }
+                } else if (status === "Succeeded") { // Note: When will the status be Unknown?
+                    return res.status(200).json({ logs: "", status: "done" });
+                } else {
+                    fs.readFile(filePath, 'utf8', (err, data) => {
+                        if (err) {
+                            if (status === "Running") {
+                                return res.status(200).json({ logs: ['Generating logs...'], status: "container" })
+                            } else {
+                                logger.error("Error reading file:", err);
+                                return res.status(500).json({ error: "No log file was found for this job." });
                             }
-                            const logsArray = data.split('\n').filter(line => line.trim().length > 0); // Remove empty lines
-                            const lastLine = logsArray[logsArray.length - 1];
+                        }
+                        const logsArray = data.split('\n').filter(line => line.trim().length > 0); // Remove empty lines
+                        const lastLine = logsArray[logsArray.length - 1];
 
-                            if (/Error|failed|Stopping/i.test(lastLine)) {
-                                status = "Error"; // Check for error keywords
-                            } else if (/completed|success|Done/i.test(lastLine)) {
-                                status = "done"; // Check for successful completion
-                            } else if (/EC/i.test(lastLine)) {
-                                status = "annot"; // Check for annotation
-                            } else if (/delineation/i.test(lastLine)) {
-                                status = "delineation"; // If none of the above conditions match
-                            } else if (/Tree/i.test(lastLine)) {
-                                status = "tree";
-                            } else if (/Alignment/i.test(lastLine)) {
-                                status = "align";
-                            } else if (/diamond/i.test(lastLine)) {
-                                status = "db";
-                            }
-                            return res.status(200).json({ logs: logsArray, status: status });
-                        });
-                    }
+                        if (/Error|failed|Stopping/i.test(lastLine)) {
+                            status = "Error"; // Check for error keywords
+                        } else if (/completed|success|Done/i.test(lastLine)) {
+                            status = "done"; // Check for successful completion
+                        } else if (/EC/i.test(lastLine)) {
+                            status = "annot"; // Check for annotation
+                        } else if (/delineation/i.test(lastLine)) {
+                            status = "delineation"; // If none of the above conditions match
+                        } else if (/Tree/i.test(lastLine)) {
+                            status = "tree";
+                        } else if (/Alignment/i.test(lastLine)) {
+                            status = "align";
+                        } else if (/diamond/i.test(lastLine)) {
+                            status = "db";
+                        }
+                        return res.status(200).json({ logs: logsArray, status: status });
+                    });
                 }
             }
 
