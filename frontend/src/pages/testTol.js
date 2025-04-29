@@ -493,7 +493,7 @@ const TestTol = () => {
           width={1500}
           //linkStyler={style_edges}
           onNodeClick={onNodeClick}
-          //homeNode={"bilR"} // disabled due to throwing a zoom.js error
+          homeNode={"bilR"}
           state={treeRef.current && treeRef.current.getState()}
         />;
       }

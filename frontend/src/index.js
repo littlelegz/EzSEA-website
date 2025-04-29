@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 import About from "./pages/about";
-import TolApp from "./pages/tolApp";
 import TestApp from "./pages/testApp";
 import Playground from "./pages/playground";
 import NotFoundPage from "./pages/notfoundpage";

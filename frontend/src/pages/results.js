@@ -8,9 +8,6 @@ import React, { useEffect, useRef, useState, useContext, useMemo, useCallback } 
 import { useParams } from 'react-router-dom';
 
 // External libraries
-import * as pt from 'phylotree'; // Switch to tree3-react
-import { isLeafNode, selectAllDescendants } from 'phylotree/src/nodes';
-import { addCustomMenu } from 'phylotree/src/render/menus';
 import * as d3 from 'd3';
 import JSZip from 'jszip';
 import { ZstdInit } from '@oneidentity/zstd-js/decompress';
@@ -24,7 +21,6 @@ import InputLabel from '@mui/material/InputLabel';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import Skeleton from '@mui/material/Skeleton';
 import { Slider } from '@mui/material';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
@@ -540,7 +536,7 @@ const Results = () => {
           width={1500}
           //linkStyler={style_edges}
           onNodeClick={onNodeClick}
-          // homeNode={inputHeader || ''} // disabled due to throwing a zoom.js error
+          homeNode={inputHeader || ''}
           state={treeRef.current && treeRef.current.getState()}
         />;
       }
