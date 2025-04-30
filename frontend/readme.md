@@ -1,44 +1,18 @@
-# EzSEA Web Visualization Tool
-A web-based visualization tool for exploring and analyzing sequence evolution data. This project consists of a React frontend that provides interactive visualizations using Tree3 and MolStar components.
+# Visualization tools
+Phylogenetic Tree: PhyloTree.js
+Protein Viewer: Mol*
+Sequence Logos: LogoJS
 
-# Project Structure
-```
-reactvis/
-├── frontend/      # React frontend application
-├── backend/       # Node.js backend server
-└── proxy/         # Nginx proxy configuration
-```
+# TODO:
+Use tree3-react instead of Phylotree.js
 
-## Development Setup
-This section will explain how to run the development environment for the frontend. Backend and proxy functionality is not required. 
+Pages:
+1. results.js (and it's sister page, tol)
+2. submit.js - Sends requests to backend for queuing jobs
+3. status.js - Sends timed requests to backend to query status of job. Will automatically redirect to the results page on success of job.
+4. about.js
+5. help.js
 
-1. Navigate to the frontend directory:
-```
-cd reactvis/frontend
-```
-
-2. Install dependencies
-```
-npm i
-```
-
-3. Start the development server
-```
-npm start
-```
-
-This will run the app in development mode. Open http://localhost:3000/ezsea to view it in your browser. The page will automatically reload when you make changes.
-
-# Production Deployment
-To deploy the full stack application:
-
-1. Build and start all services using Docker Compose:
-```
-docker-compose up --build
-```
-
-This will:
-
-- Build and serve the frontend at port 443 (HTTPS)
-- Start the backend server at port 5000
-- Configure the proxy server at port 80
+Components:
+1. logo-stack.js - generates a group of sequence logo svgs
+2. molstar.js - a react component containing the molstar viewer

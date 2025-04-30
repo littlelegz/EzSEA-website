@@ -1,11 +1,44 @@
-This repo contains all the files necessary for running an instance of EzSEA on a gcloud vm. 
+# EzSEA Web Visualization Tool
+A web-based visualization tool for exploring and analyzing sequence evolution data. This project consists of a React frontend that provides interactive visualizations using Tree3 and MolStar components.
 
-Frontend is a reactJS webpage. It contains a customized logo component based on LogoJS and an implementation of molstar as a react component.
+# Project Structure
+```
+reactvis/
+├── frontend/      # React frontend application
+├── backend/       # Node.js backend server
+└── proxy/         # Nginx proxy configuration
+```
 
-Backend is in nodeJS. It receives communications from the frontend and dispatches jobs to kubernetes cluster controlled within the vm. 
+## Development Setup
+This section will explain how to run the development environment for the frontend. Backend and proxy functionality is not required. 
 
-Proxy routes communications and logs unique visitors.
+1. Navigate to the frontend directory:
+```
+cd reactvis/frontend
+```
 
-Startup on gcloud: 
-1. Running frontend and backend
+2. Install dependencies
+```
+npm i
+```
+
+3. Start the development server
+```
+npm start
+```
+
+This will run the app in development mode. Open http://localhost:3000/ezsea to view it in your browser. The page will automatically reload when you make changes.
+
+# Production Deployment
+To deploy the full stack application:
+
+1. Build and start all services using Docker Compose:
+```
 docker-compose up --build
+```
+
+This will:
+
+- Build and serve the frontend at port 443 (HTTPS)
+- Start the backend server at port 5000
+- Configure the proxy server at port 80
