@@ -143,10 +143,10 @@ app.post("/submit", upload.single('input_file'), (req, res) => {
 
     logger.info("Received Job: " + job_id);
 
-    // If input file extension is .pdb, copy input file to /output/EzSEA_job_id/Visualization/input.pdb
+    // If input file extension is .pdb, copy input file to /output/EzSEA_job_id/Visualization/seq.pdb
     if (input_file_name.endsWith('.pdb')) {
         const outputDir = `/output/EzSEA_${job_id}/Visualization`;
-        const outputPath = path.join(outputDir, 'input.pdb');
+        const outputPath = path.join(outputDir, 'seq.pdb');
         fs.mkdirSync(outputDir, { recursive: true });
         fs.copyFile(input_file.path, outputPath, (err) => {
             if (err) {
@@ -361,7 +361,7 @@ app.get("/results/:id", async (req, res) => {
             });
     });
 
-    var structPath = "";
+    var structPath = ""; // TODO: UPDATE TO HARDCODED ../seq.pdb
 
     try {
         var pdbFiles = fs.readdirSync(folderPath).filter(fn => fn.endsWith('.pdb')); // Returns an array of pdb files
@@ -372,7 +372,7 @@ app.get("/results/:id", async (req, res) => {
             structPath = path.join(folderPath, pdbFiles[0]);
         }
     } catch (e) {
-        logger.error("Attempted to find pdb files. Does Visualization/ exist?: " + e);
+        logger.error("Failed to find pdb files: " + e);
 
     }
 
