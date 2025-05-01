@@ -192,7 +192,8 @@ app.post("/submit", upload.single('input_file'), (req, res) => {
                                     "mkdir -p /database/output/EzSEA_" + job_id + "/Visualization/ "
                                     + "&& ./run-esm-fold.sh -i /database/output/input/" + job_id
                                     + ".fasta --pdb /database/output/EzSEA_" + job_id + "/Visualization/"
-                                    + "&& fpocket -f /database/output/EzSEA_" + job_id + "/Visualization/" + header + ".pdb" // esmfold output is formatted as [header].pdb, this can be an issue if the header length is too long
+                                    + "&& mv /database/output/EzSEA_" + job_id + "/Visualization/" + header + ".pdb /database/output/EzSEA_" + job_id + "/Visualization/seq.pdb" // esmfold output is formatted as [header].pdb, this can be an issue if the header length is too long
+                                    + "&& fpocket -f /database/output/EzSEA_" + job_id + "/Visualization/seq.pdb" 
                                     + "&& mv /database/output/EzSEA_" + job_id + "/Visualization/*_out/pockets /database/output/EzSEA_" + job_id + "/Visualization/"
                                 ],
                                 "resources": {
