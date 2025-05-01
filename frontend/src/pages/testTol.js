@@ -204,7 +204,7 @@ const TestTol = () => {
 
   const style_leaves = useMemo(() => (node) => {
     if (!node) return;
-    if (node.data.name === "bilR") {
+    if (node.data.name === "BilR") {
       d3.select(node.labelElement).style("fill", "red").style("font-size", () => {
         const currentSize = d3.select(node.labelElement).style("font-size");
         const sizeNum = parseFloat(currentSize);
@@ -277,7 +277,7 @@ const TestTol = () => {
 
   const style_leaves_unrooted = useMemo(() => (node) => {
     if (!node) return;
-    if (node.data.name === "bilR") {
+    if (node.data.name === "BilR") {
       d3.select(node.labelElement).style("fill", "red").style("font-size", () => {
         const currentSize = d3.select(node.labelElement).style("font-size");
         const sizeNum = parseFloat(currentSize);
@@ -462,7 +462,7 @@ const TestTol = () => {
           width={1500}
           linkStyler={style_edges}
           onNodeClick={onNodeClick}
-          homeNode={"bilR"}
+          homeNode={"BilR"}
           state={treeRef.current && treeRef.current.getState()}
         />;
       } else if (treeLayout === 'rectangular') {
@@ -477,7 +477,7 @@ const TestTol = () => {
           width={1500}
           linkStyler={style_edges}
           onNodeClick={onNodeClick}
-          homeNode={"bilR"}
+          homeNode={"BilR"}
           state={treeRef.current && treeRef.current.getState()}
         />;
       } else {
@@ -493,7 +493,7 @@ const TestTol = () => {
           width={1500}
           //linkStyler={style_edges}
           onNodeClick={onNodeClick}
-          homeNode={"bilR"}
+          homeNode={"BilR"}
           state={treeRef.current && treeRef.current.getState()}
         />;
       }
@@ -1016,7 +1016,7 @@ const TestTol = () => {
             <ButtonGroup variant="contained" aria-label="Basic button group">
               <Tooltip title="Recenter on input" placement="top">
                 <Button onClick={() => {
-                  treeRef.current && treeRef.current.findAndZoom("bilR", treediv);
+                  treeRef.current && treeRef.current.findAndZoom("BilR", treediv);
                 }}><FilterCenterFocusIcon /></Button>
               </Tooltip>
               <Tooltip title="Labels" placement="top">

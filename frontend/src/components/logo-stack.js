@@ -211,15 +211,14 @@ const LogoStack = React.forwardRef(
                     try {
                         centerOffset = ref.parentNode.clientWidth / 2;
 
-                        const target = ref.firstChild.firstChild.children[index - 1].lastChild; // Target by class instead. TODO
-                        //const originalFill = target.getAttribute("fill");
-                        // TODO for important residues, background is blue, change to red temporarily for highlighting?
+                        const target = ref.firstChild.firstChild.children[index - 1].lastChild;
+                        const originalOpacity = getComputedStyle(target).fillOpacity;
 
                         target.style.transition = "fill-opacity 0.3s ease";
                         let pulseCount = 0;
                         const pulseInterval = setInterval(() => {
                             if (target.style.fillOpacity === "0.3") {
-                                target.style.fillOpacity = "0";
+                                target.style.fillOpacity = originalOpacity;
                             } else {
                                 target.style.fillOpacity = "0.3";
                             }
@@ -227,7 +226,7 @@ const LogoStack = React.forwardRef(
                             pulseCount++;
                             if (pulseCount >= 6) {
                                 clearInterval(pulseInterval);
-                                target.style.fillOpacity = "0";
+                                target.style.fillOpacity = originalOpacity;
                             }
                         }, 300);
                     } catch (e) {
